@@ -1,0 +1,16 @@
+{
+  "name": "playlists-manager",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "web-server": "node web-server.js",
+    "back-end-server": "node back-end-server.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0",
+    "youtube-node": "^1.3.3"
+  }
+}
