@@ -1,108 +1,234 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useRef } from 'react';
 import AuthContext from '../auth';
-import { GlobalStoreContext } from '../store';
-import { Button, Box, IconButton, TextField, Typography, InputAdornment, MenuItem, Select, FormControl, InputLabel } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { Button, Box, IconButton, TextField, Typography, InputAdornment, Avatar } from '@mui/material';
+import { Link, useHistory } from 'react-router-dom'; // Changed from useNavigate to useHistory
 import HomeIcon from '@mui/icons-material/Home';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import ClearIcon from '@mui/icons-material/Clear';
+import PersonIcon from '@mui/icons-material/Person';
 
 export default function RegisterScreen() {
     const { auth } = useContext(AuthContext);
-    const { store } = useContext(GlobalStoreContext);
-    const [formData, setFormData] = useState({
-        username: '',
-        email: '',
+    const history = useHistory(); // Changed from useNavigate to useHistory
+    const profileImageInputRef = useRef(null);
+
+    // Profile picture dimensions
+    const PROFILE_WIDTH = 100;
+    const PROFILE_HEIGHT = 100;
+
+    // Form state with different field names
+    const [registrationInfo, setRegistrationInfo] = useState({
+        userName: '',
+        emailAddress: '',
         password: '',
         confirmPassword: ''
     });
 
-    const [errors, setErrors] = useState({
-        username: '',
-        email: '',
+    // Profile picture state
+    const [profilePicture, setProfilePicture] = useState(null);
+    const [profilePreview, setProfilePreview] = useState(null);
+
+    // Validation messages
+    const [validationMessages, setValidationMessages] = useState({
+        userName: '',
+        emailAddress: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        profilePicture: ''
     });
 
-   
-    const handleInputChange = (field) => (event) => {
-        const value = event.target.value;
-        setFormData(prev => ({
+    const handleFieldUpdate = (fieldName) => (event) => {
+        const fieldValue = event.target.value;
+        setRegistrationInfo(prev => ({
             ...prev,
-            [field]: value
+            [fieldName]: fieldValue
         }));
         
-        if (errors[field]) {
-            setErrors(prev => ({
+        // Remove validation message when user types
+        if (validationMessages[fieldName]) {
+            setValidationMessages(prev => ({
                 ...prev,
-                [field]: ''
+                [fieldName]: ''
+            }));
+        }
+
+        // Run validation on the field
+        checkFieldValidity(fieldName, fieldValue);
+    };
+
+    const handleFieldClear = (fieldName) => () => {
+        setRegistrationInfo(prev => ({
+            ...prev,
+            [fieldName]: ''
+        }));
+        setValidationMessages(prev => ({
+            ...prev,
+            [fieldName]: ''
+        }));
+    };
+
+    const checkFieldValidity = (fieldName, fieldValue) => {
+        let message = '';
+
+        switch (fieldName) {
+            case 'userName':
+                if (fieldValue && fieldValue.trim() === '') {
+                    message = 'Please enter a valid user name';
+                }
+                break;
+            case 'emailAddress':
+                if (fieldValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fieldValue)) {
+                    message = 'Please enter a valid email format';
+                }
+                break;
+            case 'password':
+                // Minimum 8 characters for passwords
+                if (fieldValue && fieldValue.length < 8) {
+                    message = 'password must be at least 8 characters';
+                }
+                // Also verify password confirmation if filled
+                if (registrationInfo.confirmPassword && fieldValue !== registrationInfo.confirmPassword) {
+                    setValidationMessages(prev => ({
+                        ...prev,
+                        confirmPassword: 'Passwords do not match'
+                    }));
+                } else if (registrationInfo.confirmPassword) {
+                    setValidationMessages(prev => ({
+                        ...prev,
+                        confirmPassword: ''
+                    }));
+                }
+                break;
+            case 'confirmPassword':
+                if (fieldValue && fieldValue !== registrationInfo.password) {
+                    message = 'Passwords do not match';
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (message) {
+            setValidationMessages(prev => ({
+                ...prev,
+                [fieldName]: message
             }));
         }
     };
 
-    const handleClearField = (field) => () => {
-        setFormData(prev => ({
-            ...prev,
-            [field]: ''
-        }));
-        setErrors(prev => ({
-            ...prev,
-            [field]: ''
-        }));
+    const handleProfileSelection = () => {
+        profileImageInputRef.current?.click();
     };
 
-    const handleSubmit = (event) => {
+    const handleProfileImageUpdate = (event) => {
+        const selectedFile = event.target.files[0];
+        if (selectedFile) {
+            // Verify it's an image file
+            if (!selectedFile.type.startsWith('image/')) {
+                setValidationMessages(prev => ({
+                    ...prev,
+                    profilePicture: 'Please choose an image file'
+                }));
+                return;
+            }
+
+            // Create image to verify dimensions
+            const imageElement = new Image();
+            const fileReader = new FileReader();
+
+            fileReader.onload = (readEvent) => {
+                imageElement.onload = () => {
+                    // Check specific dimensions
+                    if (imageElement.width !== PROFILE_WIDTH || imageElement.height !== PROFILE_HEIGHT) {
+                        setValidationMessages(prev => ({
+                            ...prev,
+                            profilePicture: `Image must be precisely ${PROFILE_WIDTH}x${PROFILE_HEIGHT} pixels`
+                        }));
+                        return;
+                    }
+
+                    // Valid image - store as base64
+                    setProfilePicture(readEvent.target.result);
+                    setProfilePreview(readEvent.target.result);
+                    setValidationMessages(prev => ({
+                        ...prev,
+                        profilePicture: ''
+                    }));
+                };
+                imageElement.src = readEvent.target.result;
+            };
+
+            fileReader.readAsDataURL(selectedFile);
+        }
+    };
+
+    // Check if all registration requirements are met
+    const canRegister = () => {
+        // All required fields must have content
+        if (!registrationInfo.userName.trim() || !registrationInfo.emailAddress || 
+            !registrationInfo.password || !registrationInfo.confirmPassword) {
+            return false;
+        }
+
+        // No validation messages should exist
+        if (Object.values(validationMessages).some(msg => msg !== '')) {
+            return false;
+        }
+
+        // Passwords must meet length requirement
+        if (registrationInfo.password.length < 8) {
+            return false;
+        }
+
+        // Both passwords must match
+        if (registrationInfo.password !== registrationInfo.confirmPassword) {
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleRegistrationSubmit = async (event) => {
         event.preventDefault();
 
-        // Validation
-        let hasError = false;
-        const newErrors = { username: '', email: '', password: '', confirmPassword: '' };
-
-        if (!formData.username.trim()) {
-            newErrors.username = 'Username is required';
-            hasError = true;
-        }
-
-        if (!formData.email.trim()) {
-            newErrors.email = 'Email is required';
-            hasError = true;
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = 'Email is invalid';
-            hasError = true;
-        }
-
-        if (!formData.password) {
-            newErrors.password = 'Password is required';
-            hasError = true;
-        } else if (formData.password.length < 6) {
-            newErrors.password = 'Password must be at least 6 characters';
-            hasError = true;
-        }
-
-        if (!formData.confirmPassword) {
-            newErrors.confirmPassword = 'Please confirm your password';
-            hasError = true;
-        } else if (formData.password !== formData.confirmPassword) {
-            newErrors.confirmPassword = 'Passwords do not match';
-            hasError = true;
-        }
-
-        if (hasError) {
-            setErrors(newErrors);
+        if (!canRegister()) {
             return;
         }
 
-        // Register user
-        auth.registerUser({
-            username: formData.username,
-            email: formData.email,
-            password: formData.password
-        }, store);
+        // Process registration
+        const registrationResult = await auth.createNewAccount(
+            registrationInfo.userName.trim(),
+            registrationInfo.emailAddress,
+            registrationInfo.password,
+            registrationInfo.confirmPassword,
+            profilePicture
+        );
+
+        if (registrationResult.successful) {
+            // Redirect to login after successful registration
+            history.push('/login/'); // Changed from navigate to history.push
+        } else {
+            // Display registration error
+            if (registrationResult.errorMessage) {
+                if (registrationResult.errorMessage.includes('email')) {
+                    setValidationMessages(prev => ({
+                        ...prev,
+                        emailAddress: registrationResult.errorMessage
+                    }));
+                } else {
+                    // Error shown on email field
+                    setValidationMessages(prev => ({
+                        ...prev,
+                        emailAddress: registrationResult.errorMessage
+                    }));
+                }
+            }
+        }
     };
 
-    const handleHomeClick = () => {
-        window.location.href = '/';
+    const handleReturnHome = () => {
+        history.push('/'); // Changed from navigate to history.push
     };
 
     return (
@@ -121,14 +247,14 @@ export default function RegisterScreen() {
             <Box 
                 sx={{
                     width: '100%',
-                    maxWidth: 450,
+                    maxWidth: 500,
                     backgroundColor: '#f8e0f0',
                     borderRadius: 2,
                     overflow: 'hidden',
                     boxShadow: 3
                 }}
             >
-                {/* Header Bar - Magenta */}
+                {/* Header Bar: Magenta */}
                 <Box 
                     sx={{
                         backgroundColor: '#e020a0',
@@ -140,7 +266,7 @@ export default function RegisterScreen() {
                     }}
                 >
                     <IconButton 
-                        onClick={handleHomeClick}
+                        onClick={handleReturnHome}
                         sx={{ 
                             color: 'white', 
                             backgroundColor: 'rgba(255,255,255,0.2)', 
@@ -154,7 +280,7 @@ export default function RegisterScreen() {
                     </IconButton>
                 </Box>
 
-                {/* Content Area - Cream/Beige */}
+                {/* Content Area: Cream/Beige */}
                 <Box 
                     sx={{
                         backgroundColor: '#f5f5dc',
@@ -186,57 +312,121 @@ export default function RegisterScreen() {
                     </Typography>
 
                     {/* Form */}
-                    <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
-                        {/* Username Field */}
-                        <Box sx={{ mb: 2 }}>
-                            <TextField
-                                fullWidth
-                                label="User Name"
-                                value={formData.username}
-                                onChange={handleInputChange('username')}
-                                error={!!errors.username}
-                                helperText={errors.username}
-                                variant="standard"
-                                autoFocus
-                                InputProps={{
-                                    endAdornment: formData.username && (
-                                        <InputAdornment position="end">
-                                            <IconButton
-                                                size="small"
-                                                onClick={handleClearField('username')}
-                                                sx={{ 
-                                                    backgroundColor: '#999',
-                                                    color: 'white',
-                                                    width: 20,
-                                                    height: 20,
-                                                    '&:hover': { backgroundColor: '#777' }
-                                                }}
-                                            >
-                                                <ClearIcon sx={{ fontSize: 14 }} />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    )
-                                }}
-                            />
+                    <Box component="form" onSubmit={handleRegistrationSubmit} sx={{ width: '100%' }}>
+                        {/* Profile Picture + User Name Row */}
+                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                            {/* Profile Picture Selector */}
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                <Avatar
+                                    src={profilePreview}
+                                    sx={{ 
+                                        width: 56, 
+                                        height: 56, 
+                                        backgroundColor: '#ddd',
+                                        mb: 0.5
+                                    }}
+                                >
+                                    {!profilePreview && <PersonIcon />}
+                                </Avatar>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={handleProfileSelection}
+                                    sx={{ 
+                                        fontSize: '0.7rem',
+                                        py: 0.25,
+                                        px: 1,
+                                        minWidth: 'auto',
+                                        color: '#333',
+                                        borderColor: '#333',
+                                        borderRadius: 1
+                                    }}
+                                >
+                                    Select
+                                </Button>
+                                <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                        mt: 0.5, 
+                                        color: '#666',
+                                        textAlign: 'center',
+                                        fontSize: '0.65rem'
+                                    }}
+                                >
+                                    {PROFILE_WIDTH}x{PROFILE_HEIGHT}px
+                                </Typography>
+                                <input
+                                    type="file"
+                                    ref={profileImageInputRef}
+                                    onChange={handleProfileImageUpdate}
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                />
+                                {validationMessages.profilePicture && (
+                                    <Typography 
+                                        variant="caption" 
+                                        sx={{ 
+                                            mt: 0.5, 
+                                            textAlign: 'center', 
+                                            maxWidth: 80,
+                                            color: '#d32f2f'
+                                        }}
+                                    >
+                                        {validationMessages.profilePicture}
+                                    </Typography>
+                                )}
+                            </Box>
+
+                            {/* User Name Field */}
+                            <Box sx={{ flex: 1 }}>
+                                <TextField
+                                    fullWidth
+                                    label="User Name"
+                                    value={registrationInfo.userName}
+                                    onChange={handleFieldUpdate('userName')}
+                                    error={!!validationMessages.userName}
+                                    helperText={validationMessages.userName}
+                                    variant="standard"
+                                    InputProps={{
+                                        endAdornment: registrationInfo.userName && (
+                                            <InputAdornment position="end">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={handleFieldClear('userName')}
+                                                    sx={{ 
+                                                        backgroundColor: '#999',
+                                                        color: 'white',
+                                                        width: 20,
+                                                        height: 20,
+                                                        '&:hover': { backgroundColor: '#777' }
+                                                    }}
+                                                >
+                                                    <ClearIcon sx={{ fontSize: 14 }} />
+                                                </IconButton>
+                                            </InputAdornment>
+                                        )
+                                    }}
+                                />
+                            </Box>
                         </Box>
 
-                        {/* Email Field */}
-                        <Box sx={{ mb: 2 }}>
+                        {/* Email Address Field */}
+                        <Box sx={{ mb: 2, ml: 9 }}>
                             <TextField
                                 fullWidth
-                                label="Email"
+                                label="Email Address"
                                 type="email"
-                                value={formData.email}
-                                onChange={handleInputChange('email')}
-                                error={!!errors.email}
-                                helperText={errors.email}
+                                value={registrationInfo.emailAddress}
+                                onChange={handleFieldUpdate('emailAddress')}
+                                error={!!validationMessages.emailAddress}
+                                helperText={validationMessages.emailAddress}
                                 variant="standard"
                                 InputProps={{
-                                    endAdornment: formData.email && (
+                                    endAdornment: registrationInfo.emailAddress && (
                                         <InputAdornment position="end">
                                             <IconButton
                                                 size="small"
-                                                onClick={handleClearField('email')}
+                                                onClick={handleFieldClear('emailAddress')}
                                                 sx={{ 
                                                     backgroundColor: '#999',
                                                     color: 'white',
@@ -253,23 +443,23 @@ export default function RegisterScreen() {
                             />
                         </Box>
 
-                        {/* Password Field */}
-                        <Box sx={{ mb: 2 }}>
+                        {/* Password Key Field */}
+                        <Box sx={{ mb: 2, ml: 9 }}>
                             <TextField
                                 fullWidth
                                 label="Password"
                                 type="password"
-                                value={formData.password}
-                                onChange={handleInputChange('password')}
-                                error={!!errors.password}
-                                helperText={errors.password}
+                                value={registrationInfo.password}
+                                onChange={handleFieldUpdate('password')}
+                                error={!!validationMessages.password}
+                                helperText={validationMessages.password || 'Minimum 8 characters'}
                                 variant="standard"
                                 InputProps={{
-                                    endAdornment: formData.password && (
+                                    endAdornment: registrationInfo.password && (
                                         <InputAdornment position="end">
                                             <IconButton
                                                 size="small"
-                                                onClick={handleClearField('password')}
+                                                onClick={handleFieldClear('password')}
                                                 sx={{ 
                                                     backgroundColor: '#999',
                                                     color: 'white',
@@ -287,22 +477,22 @@ export default function RegisterScreen() {
                         </Box>
 
                         {/* Confirm Password Field */}
-                        <Box sx={{ mb: 4 }}>
+                        <Box sx={{ mb: 3, ml: 9 }}>
                             <TextField
                                 fullWidth
-                                label="Password Confirm"
+                                label="Confirm Password"
                                 type="password"
-                                value={formData.confirmPassword}
-                                onChange={handleInputChange('confirmPassword')}
-                                error={!!errors.confirmPassword}
-                                helperText={errors.confirmPassword}
+                                value={registrationInfo.confirmPassword}
+                                onChange={handleFieldUpdate('confirmPassword')}
+                                error={!!validationMessages.confirmPassword}
+                                helperText={validationMessages.confirmPassword}
                                 variant="standard"
                                 InputProps={{
-                                    endAdornment: formData.confirmPassword && (
+                                    endAdornment: registrationInfo.confirmPassword && (
                                         <InputAdornment position="end">
                                             <IconButton
                                                 size="small"
-                                                onClick={handleClearField('confirmPassword')}
+                                                onClick={handleFieldClear('confirmPassword')}
                                                 sx={{ 
                                                     backgroundColor: '#999',
                                                     color: 'white',
@@ -324,6 +514,7 @@ export default function RegisterScreen() {
                             <Button
                                 type="submit"
                                 variant="contained"
+                                disabled={!canRegister()}
                                 sx={{ 
                                     backgroundColor: '#333',
                                     color: 'white',
@@ -334,10 +525,14 @@ export default function RegisterScreen() {
                                     borderRadius: 1,
                                     '&:hover': {
                                         backgroundColor: '#555'
+                                    },
+                                    '&:disabled': {
+                                        backgroundColor: '#ccc',
+                                        color: '#888'
                                     }
                                 }}
                             >
-                                CREATE ACCOUNT
+                                Create Account
                             </Button>
                         </Box>
 
