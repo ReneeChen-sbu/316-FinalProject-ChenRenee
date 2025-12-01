@@ -1,57 +1,172 @@
-import { Button } from "@mui/material";
-import { maxHeight } from "@mui/system";
 import { useContext, useState } from 'react';
 import AuthContext from '../auth';
-import { GlobalStoreContext } from '../store'
+import { GlobalStoreContext } from '../store';
+import { Button, Box, IconButton } from '@mui/material';
+import { Link } from 'react-router-dom';
+import HomeIcon from '@mui/icons-material/Home';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import HomeScreen from './HomeScreen'
 
 export default function SplashScreen() {
     const { auth } = useContext(AuthContext);
     const { store } = useContext(GlobalStoreContext);
-    const [GuestState,setGuestState] = useState(false);
+    const [guestState, setGuestState] = useState(false);
 
-    const handleRegisterButton = () =>{
-        window.location.href += 'register'
+    const handleGuestButton = () => {
+        setGuestState(true);
+        auth.loggedIn = true;
     }
 
-    const handleLoginButton = () =>{
-        window.location.href += 'login'
-    }
-
-    const handleGuestButton = () =>{
-        setGuestState(true)
-    }
-
-   if(GuestState == false)
-   {
-    return (
-        <div id="splash-screen">
-            <div style={{fontSize:80,textAlign:"center",marginBottom:'10%'}}>
-                The Playlister
-            </div>
-            <div>
-                <div style={{fontSize:40,textAlign:'center'}} id = "splash-bottom">
-                    
-                </div>
-            </div>
-            <div id= "splash-button-style">
-                <Button style={{right:'3%',fontSize:'25px',borderRadius:'10px', backgroundColor: "#000000"}} onClick = {handleRegisterButton}>
-                Continue as the Guest
-                </Button>
-
-                <Button style={{right:'0%',fontSize:'25px',borderRadius:'10px', backgroundColor: "#000000"}} onClick = {handleLoginButton}>
-                    Login
-                </Button>
-
-                <Button style={{left:'3%',fontSize:'25px',borderRadius:'10px', backgroundColor: "#000000"}} onClick = {handleGuestButton}>
-                    Create Account
-                </Button>
-            </div>
-           
-        </div>
-    )
-   }else{
-        auth.loggedIn = true
+    if (guestState) {
         return <HomeScreen />
-   }
+    }
+
+    return (
+        <Box 
+            sx={{
+                position: 'fixed',  // Changed to fixed to ensure full coverage
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100vh',
+                backgroundColor: '#f8e0f0',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: 4,
+                zIndex: 9999  // Ensure it's on top
+            }}
+        >
+            {/* Main Container */}
+            <Box 
+                sx={{
+                    width: '100%',
+                    maxWidth: 700,
+                    backgroundColor: '#f8e0f0',
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    boxShadow: 3
+                }}
+            >
+                {/* Header Bar - Magenta */}
+                <Box 
+                    sx={{
+                        backgroundColor: '#e020a0',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        px: 2,
+                        py: 1
+                    }}
+                >
+                    <IconButton sx={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%' }}>
+                        <HomeIcon />
+                    </IconButton>
+                    <IconButton sx={{ color: 'white' }}>
+                        <AccountCircleIcon fontSize="large" />
+                    </IconButton>
+                </Box>
+
+                {/* Content Area - Cream/Beige */}
+                <Box 
+                    sx={{
+                        backgroundColor: '#f5f5dc',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        py: 8,
+                        px: 4,
+                        minHeight: 400
+                    }}
+                >
+                    {/* Title */}
+                    <Box 
+                        sx={{ 
+                            fontSize: '2.5rem', 
+                            fontWeight: 400,
+                            color: '#555',
+                            mb: 3,
+                            fontFamily: 'serif'
+                        }}
+                    >
+                        The Playlister
+                    </Box>
+
+                    {/* Music Note Logo */}
+                    <Box sx={{ mb: 6 }}>
+                        <QueueMusicIcon sx={{ fontSize: 120, color: '#333' }} />
+                    </Box>
+
+                    {/* Action Buttons */}
+                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                        <Button
+                            onClick={handleGuestButton}
+                            variant="contained"
+                            sx={{ 
+                                backgroundColor: '#333',
+                                color: 'white',
+                                textTransform: 'none',
+                                px: 3,
+                                py: 1,
+                                fontSize: '0.9rem',
+                                borderRadius: 1,
+                                '&:hover': {
+                                    backgroundColor: '#555'
+                                }
+                            }}
+                        >
+                            Continue as Guest
+                        </Button>
+
+                        <Button
+                            component={Link}
+                            to="/register/"
+                            variant="contained"
+                            sx={{ 
+                                backgroundColor: '#555',
+                                color: 'white',
+                                textTransform: 'none',
+                                px: 4,
+                                py: 1,
+                                fontSize: '0.9rem',
+                                borderRadius: 1,
+                                border: '2px solid #333',
+                                '&:hover': {
+                                    backgroundColor: '#666'
+                                },
+                                textDecoration: 'none'
+                            }}
+                        >
+                            Login
+                        </Button>
+
+                        <Button
+                            component={Link}
+                            to="/login/"
+                            variant="contained"
+                            sx={{ 
+                                backgroundColor: '#333',
+                                color: 'white',
+                                textTransform: 'none',
+                                px: 3,
+                                py: 1,
+                                fontSize: '0.9rem',
+                                borderRadius: 1,
+                                '&:hover': {
+                                    backgroundColor: '#555'
+                                },
+                                textDecoration: 'none'
+                            }}
+                        >
+                            Create Account
+                        </Button>
+                    </Box>
+                </Box>
+            </Box>
+        </Box>
+    );
 }

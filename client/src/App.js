@@ -9,27 +9,36 @@ import {
     LoginScreen,
     RegisterScreen,
     Statusbar,
-    WorkspaceScreen
+    WorkspaceScreen,
+    SplashScreen
 } from './components'
-/*
-  This is the entry-point for our application. Notice that we
-  inject our store into all the components in our application.
-  
-  @author McKilla Gorilla
-*/
+
 const App = () => {   
     return (
         <BrowserRouter>
             <AuthContextProvider>
                 <GlobalStoreContextProvider>              
-                    <AppBanner />
                     <Switch>
-                        <Route path="/" exact component={HomeWrapper} />
+                        {/* Routes WITHOUT AppBanner */}
+                        <Route path="/" exact>
+                            {/* Don't render AppBanner for splash screen */}
+                            <SplashScreen />
+                        </Route>
                         <Route path="/login/" exact component={LoginScreen} />
                         <Route path="/register/" exact component={RegisterScreen} />
-                        <Route path="/playlist/:id" exact component={WorkspaceScreen} />
+                        
+                        {/* Routes WITH AppBanner */}
+                        <Route path="/home" exact>
+                            <AppBanner />
+                            <HomeWrapper />
+                            <Statusbar />
+                        </Route>
+                        <Route path="/playlist/:id" exact>
+                            <AppBanner />
+                            <WorkspaceScreen />
+                            <Statusbar />
+                        </Route>
                     </Switch>
-                    <Statusbar />
                 </GlobalStoreContextProvider>
             </AuthContextProvider>
         </BrowserRouter>

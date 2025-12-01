@@ -18,7 +18,8 @@
 
 
 
-#root {
+/* Replace #root with a class for specific screens */
+.app-container {
   background-color: lightyellow;
   font-family: "Lexend Exa";
   position: absolute;
@@ -34,6 +35,16 @@
   height: 100%;
   top: 0%;
   left: 0%;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a:visited, a:hover, a:active {
+  color: inherit;
+  text-decoration: none;
 }
 
 #playlister-banner {
