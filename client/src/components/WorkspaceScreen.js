@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 import { useHistory } from 'react-router-dom'
 import SongCard from './SongCard.js'
-import MUIEditSongModal from './MUIEditSongModal'
+import MUIEditSongModal from './MUIEditSongModal.js'
 //import MUIRemoveSongModal from './MUIRemoveSongModal'
 import Box from '@mui/material/Box';
 import List from '@mui/material/List';

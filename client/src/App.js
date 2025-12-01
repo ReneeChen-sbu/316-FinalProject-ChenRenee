@@ -19,15 +19,18 @@ const App = () => {
             <AuthContextProvider>
                 <GlobalStoreContextProvider>              
                     <Switch>
-                        {/* Routes WITHOUT AppBanner */}
+                        {/* Routes WITHOUT AppBanner and Statusbar */}
                         <Route path="/" exact>
-                            {/* Don't render AppBanner for splash screen */}
                             <SplashScreen />
                         </Route>
-                        <Route path="/login/" exact component={LoginScreen} />
-                        <Route path="/register/" exact component={RegisterScreen} />
+                        <Route path="/login/" exact>
+                            <LoginScreen />
+                        </Route>
+                        <Route path="/register/" exact>
+                            <RegisterScreen />
+                        </Route>
                         
-                        {/* Routes WITH AppBanner */}
+                        {/* Routes WITH AppBanner and Statusbar */}
                         <Route path="/home" exact>
                             <AppBanner />
                             <HomeWrapper />

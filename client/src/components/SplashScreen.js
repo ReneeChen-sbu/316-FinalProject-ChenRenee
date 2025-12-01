@@ -44,14 +44,17 @@ export default function SplashScreen() {
             <Box 
                 sx={{
                     width: '100%',
-                    maxWidth: 700,
+                    maxWidth: 1000,
+                    maxHeight:1000,
                     backgroundColor: '#f8e0f0',
                     borderRadius: 2,
                     overflow: 'hidden',
-                    boxShadow: 3
+                    boxShadow: 3,
+                    justifyContent: 'center',
+                    alignItems:'center'
                 }}
             >
-                {/* Header Bar - Magenta */}
+                {/* Header Bar: Magenta */}
                 <Box 
                     sx={{
                         backgroundColor: '#e020a0',
@@ -70,7 +73,7 @@ export default function SplashScreen() {
                     </IconButton>
                 </Box>
 
-                {/* Content Area - Cream/Beige */}
+                {/* Content Area: Cream/Beige */}
                 <Box 
                     sx={{
                         backgroundColor: '#f5f5dc',
@@ -86,7 +89,7 @@ export default function SplashScreen() {
                     {/* Title */}
                     <Box 
                         sx={{ 
-                            fontSize: '2.5rem', 
+                            fontSize: '3.5rem', 
                             fontWeight: 400,
                             color: '#555',
                             mb: 3,
@@ -98,7 +101,7 @@ export default function SplashScreen() {
 
                     {/* Music Note Logo */}
                     <Box sx={{ mb: 6 }}>
-                        <QueueMusicIcon sx={{ fontSize: 120, color: '#333' }} />
+                        <QueueMusicIcon sx={{ fontSize: 220, color: '#333' }} />
                     </Box>
 
                     {/* Action Buttons */}
@@ -124,28 +127,6 @@ export default function SplashScreen() {
 
                         <Button
                             component={Link}
-                            to="/register/"
-                            variant="contained"
-                            sx={{ 
-                                backgroundColor: '#555',
-                                color: 'white',
-                                textTransform: 'none',
-                                px: 4,
-                                py: 1,
-                                fontSize: '0.9rem',
-                                borderRadius: 1,
-                                border: '2px solid #333',
-                                '&:hover': {
-                                    backgroundColor: '#666'
-                                },
-                                textDecoration: 'none'
-                            }}
-                        >
-                            Login
-                        </Button>
-
-                        <Button
-                            component={Link}
                             to="/login/"
                             variant="contained"
                             sx={{ 
@@ -158,8 +139,27 @@ export default function SplashScreen() {
                                 borderRadius: 1,
                                 '&:hover': {
                                     backgroundColor: '#555'
-                                },
-                                textDecoration: 'none'
+                                }
+                            }}
+                        >
+                            Login
+                        </Button>
+
+                        <Button
+                            component={Link}
+                            to="/register/"
+                            variant="contained"
+                            sx={{ 
+                                backgroundColor: '#333',
+                                color: 'white',
+                                textTransform: 'none',
+                                px: 3,
+                                py: 1,
+                                fontSize: '0.9rem',
+                                borderRadius: 1,
+                                '&:hover': {
+                                    backgroundColor: '#555'
+                                }
                             }}
                         >
                             Create Account
