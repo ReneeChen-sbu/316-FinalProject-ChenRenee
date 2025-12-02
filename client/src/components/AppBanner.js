@@ -112,7 +112,7 @@ export default function AppBanner() {
         )}
       </Box>
 
-      {/* Center - Title */}
+      {/*Title */}
       <Typography
         variant="h5"
         sx={{

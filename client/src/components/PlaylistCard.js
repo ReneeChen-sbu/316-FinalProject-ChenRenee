@@ -1,118 +1,219 @@
-import { useContext, useState } from 'react'
-import { GlobalStoreContext } from '../store'
-import Box from '@mui/material/Box';
-import DeleteIcon from '@mui/icons-material/Delete';
-import EditIcon from '@mui/icons-material/Edit';
-import IconButton from '@mui/material/IconButton';
-import ListItem from '@mui/material/ListItem';
-import TextField from '@mui/material/TextField';
+import { useState, useContext } from 'react';
+import GlobalStoreContext from '../store';
+import { Box, Button, Avatar, IconButton, Typography, Collapse } from '@mui/material';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
-/*
-    This is a card in our list of top 5 lists. It lets select
-    a list for editing and it has controls for changing its 
-    name or deleting it.
-    
-    @author McKilla Gorilla
-*/
-function PlaylistCard(props) {
-    const { store } = useContext(GlobalStoreContext);
-    const [editActive, setEditActive] = useState(false);
-    const [text, setText] = useState("");
-    const { idNamePair } = props;
+export default function PlaylistCard({ idNamePair }) {
+  const { store } = useContext(GlobalStoreContext);
+  const [expanded, setExpanded] = useState(false);
 
-    function handleLoadList(event, id) {
-        console.log("handleLoadList for " + id);
-        if (!event.target.disabled) {
-            let _id = event.target.id;
-            if (_id.indexOf('list-card-text-') >= 0)
-                _id = ("" + _id).substring("list-card-text-".length);
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    store.markListForDeletion(idNamePair._id);
+  };
 
-            console.log("load " + event.target.id);
+  const handleEdit = (e) => {
+    e.stopPropagation();
+    store.setCurrentList(idNamePair._id);
+  };
 
-            // CHANGE THE CURRENT LIST
-            store.setCurrentList(id);
-        }
-    }
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    console.log('Copy playlist', idNamePair._id);
+  };
 
-    function handleToggleEdit(event) {
-        event.stopPropagation();
-        toggleEdit();
-    }
+  const handlePlay = (e) => {
+    e.stopPropagation();
+    console.log('Play playlist', idNamePair._id);
+  };
 
-    function toggleEdit() {
-        let newActive = !editActive;
-        if (newActive) {
-            store.setIsListNameEditActive();
-        }
-        setEditActive(newActive);
-    }
+  const handleToggleExpand = () => {
+    setExpanded(!expanded);
+  };
 
-    async function handleDeleteList(event, id) {
-        event.stopPropagation();
-        //let _id = event.target.id;
-        //_id = ("" + _id).substring("delete-list-".length);
-        store.markListForDeletion(id);
-    }
+   // Use actual data from idNamePair
+   const ownerName = idNamePair.ownerEmail ? idNamePair.ownerEmail.split('@')[0] : 'Unknown';
+   const listenerCount = idNamePair.listens || 0;
+   const songs = idNamePair.songs || [];
 
-    function handleKeyPress(event) {
-        if (event.code === "Enter") {
-            let id = event.target.id.substring("list-".length);
-            store.changeListName(id, text);
-            toggleEdit();
-        }
-    }
-    function handleUpdateText(event) {
-        setText(event.target.value);
-    }
-
-    let cardElement =
-        <ListItem
-            id={idNamePair._id}
-            key={idNamePair._id}
-            sx={{borderRadius:"25px", p: "10px", bgcolor: '#8000F00F', marginTop: '15px', display: 'flex', /*p: 1*/ }}
-            style={{transform:"translate(1%,0%)", width: '98%', fontSize: '48pt' }}
-            button
-            onClick={(event) => {
-                handleLoadList(event, idNamePair._id)
+  return (
+    <Box
+      sx={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        mb: 2,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Main card content */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          p: 1.5,
+        }}
+      >
+        {/* Left side: Avatar and info */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Avatar
+            sx={{
+              width: 48,
+              height: 48,
+              backgroundColor: '#4fc3f7',
+              fontSize: '24px',
             }}
+          >
+            🤖
+          </Avatar>
+
+          <Box>
+            <Typography
+              sx={{
+                fontWeight: 'bold',
+                fontSize: '16px',
+                color: '#333',
+              }}
+            >
+              {idNamePair.name}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: '13px',
+                color: '#666',
+              }}
+            >
+              {ownerName}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Right side: Buttons and expand arrow */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Button
+            size="small"
+            onClick={handleDelete}
+            sx={{
+              backgroundColor: '#e53935',
+              color: 'white',
+              borderRadius: '4px',
+              px: 1.5,
+              py: 0.5,
+              minWidth: 'auto',
+              fontSize: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#c62828' },
+            }}
+          >
+            Delete
+          </Button>
+
+          <Button
+            size="small"
+            onClick={handleEdit}
+            sx={{
+              backgroundColor: '#1976d2',
+              color: 'white',
+              borderRadius: '4px',
+              px: 1.5,
+              py: 0.5,
+              minWidth: 'auto',
+              fontSize: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#1565c0' },
+            }}
+          >
+            Edit
+          </Button>
+
+          <Button
+            size="small"
+            onClick={handleCopy}
+            sx={{
+              backgroundColor: '#00897b',
+              color: 'white',
+              borderRadius: '4px',
+              px: 1.5,
+              py: 0.5,
+              minWidth: 'auto',
+              fontSize: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#00796b' },
+            }}
+          >
+            Copy
+          </Button>
+
+          <Button
+            size="small"
+            onClick={handlePlay}
+            sx={{
+              backgroundColor: '#e020a0',
+              color: 'white',
+              borderRadius: '4px',
+              px: 1.5,
+              py: 0.5,
+              minWidth: 'auto',
+              fontSize: '12px',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#c01080' },
+            }}
+          >
+            Play
+          </Button>
+
+          <IconButton
+            size="small"
+            onClick={handleToggleExpand}
+            sx={{ ml: 0.5 }}
+          >
+            {expanded ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+          </IconButton>
+        </Box>
+      </Box>
+
+      {/* Listener count */}
+      <Box sx={{ px: 1.5, pb: 1 }}>
+        <Typography
+          sx={{
+            fontSize: '13px',
+            color: '#00bcd4',
+            fontWeight: 500,
+          }}
         >
-            <Box sx={{ p: 1, flexGrow: 1 }}>{idNamePair.name}</Box>
-            <Box sx={{ p: 1 }}>
-                <IconButton onClick={handleToggleEdit} aria-label='edit'>
-                    <EditIcon style={{fontSize:'48pt'}} />
-                </IconButton>
-            </Box>
-            <Box sx={{ p: 1 }}>
-                <IconButton onClick={(event) => {
-                        handleDeleteList(event, idNamePair._id)
-                    }} aria-label='delete'>
-                    <DeleteIcon style={{fontSize:'48pt'}} />
-                </IconButton>
-            </Box>
-        </ListItem>
+          {listenerCount} Listeners
+        </Typography>
+      </Box>
 
-    if (editActive) {
-        cardElement =
-            <TextField
-                margin="normal"
-                required
-                fullWidth
-                id={"list-" + idNamePair._id}
-                label="Playlist Name"
-                name="name"
-                autoComplete="Playlist Name"
-                className='list-card'
-                onKeyPress={handleKeyPress}
-                onChange={handleUpdateText}
-                defaultValue={idNamePair.name}
-                inputProps={{style: {fontSize: 48}}}
-                InputLabelProps={{style: {fontSize: 24}}}
-                autoFocus
-            />
-    }
-    return (
-        cardElement
-    );
+      {/* Expanded songs list */}
+      <Collapse in={expanded}>
+        <Box
+          sx={{
+            borderTop: '1px solid #e0e0e0',
+            p: 1.5,
+            backgroundColor: '#fafafa',
+          }}
+        >
+          {songs.map((song, index) => (
+            <Typography
+              key={song._id || index}
+              sx={{
+                fontSize: '14px',
+                color: '#333',
+                py: 0.5,
+              }}
+            >
+              {index + 1}. {song.title} by {song.artist} ({song.year})
+            </Typography>
+          ))}
+        </Box>
+      </Collapse>
+    </Box>
+  );
 }
-
-export default PlaylistCard;
