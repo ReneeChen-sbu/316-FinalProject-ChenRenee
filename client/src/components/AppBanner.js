@@ -1,131 +1,173 @@
-import { useContext, useState } from 'react';
-import { Link } from 'react-router-dom'
+import { useContext } from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
 import AuthContext from '../auth';
-import { GlobalStoreContext } from '../store'
-
-import EditToolbar from './EditToolbar'
-
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import AppBar from '@mui/material/AppBar';
-import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
+import { Box, Button, IconButton, Avatar, Menu, MenuItem, Typography } from '@mui/material';
+import HomeIcon from '@mui/icons-material/Home';
+import { useState } from 'react';
 
 export default function AppBanner() {
-    const { auth } = useContext(AuthContext);
-    const { store } = useContext(GlobalStoreContext);
-    const [anchorEl, setAnchorEl] = useState(null);
-    const isMenuOpen = Boolean(anchorEl);
+  const { auth } = useContext(AuthContext);
+  const history = useHistory();
+  const location = useLocation();
+  const [anchorEl, setAnchorEl] = useState(null);
 
-    const handleProfileMenuOpen = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
+  // Don't show banner on splash/login/register screens
+  if (['/login', '/register', '/'].includes(location.pathname)) {
+    return null;
+  }
 
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
+  const isPlaylistsView = location.pathname === '/home' || location.pathname.startsWith('/playlist');
+  const isSongsView = location.pathname === '/songs';
 
-    const handleLogout = () => {
-        handleMenuClose();
-        auth.logoutUser();
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    handleMenuClose();
+    auth.logoutUser();
+  };
+
+  const handleHome = () => {
+    history.push('/home');
+  };
+
+  const getUserInitials = () => {
+    if (auth.user) {
+      return auth.user.firstName.charAt(0) + auth.user.lastName.charAt(0);
     }
+    return '';
+  };
 
-    const handleHouseClick = () => {
-        store.closeCurrentList();
-    }
-
-    const menuId = 'primary-search-account-menu';
-    const loggedOutMenu = (
-        <Menu
-            anchorEl={anchorEl}
-            anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-            }}
-            id={menuId}
-            keepMounted
-            transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-            }}
-            open={isMenuOpen}
-            onClose={handleMenuClose}
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        px: 2,
+        py: 1,
+        backgroundColor: '#e020a0', // Magenta banner color
+        position: 'relative',
+      }}
+    >
+      {/* Left side - Home button and tabs */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <IconButton
+          onClick={handleHome}
+          sx={{
+            backgroundColor: 'white',
+            width: 40,
+            height: 40,
+            '&:hover': { backgroundColor: '#f0f0f0' },
+          }}
         >
-            <MenuItem onClick={handleMenuClose}><Link to='/login/'>Login</Link></MenuItem>
-            <MenuItem onClick={handleMenuClose}><Link to='/register/'>Create New Account</Link></MenuItem>
-        </Menu>
-    );
-    const loggedInMenu = 
-        <Menu
-            anchorEl={anchorEl}
-            anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-            }}
-            id={menuId}
-            keepMounted
-            transformOrigin={{
-                vertical: 'top',
-                horizontal: 'right',
-            }}
-            open={isMenuOpen}
-            onClose={handleMenuClose}
+          <HomeIcon sx={{ color: '#333' }} />
+        </IconButton>
+
+        {auth.loggedIn && (
+          <>
+            <Button
+              onClick={() => history.push('/home')}
+              sx={{
+                borderRadius: '20px',
+                px: 3,
+                py: 0.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '14px',
+                backgroundColor: isPlaylistsView ? '#333' : 'transparent',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: isPlaylistsView ? '#444' : 'rgba(255,255,255,0.2)',
+                },
+              }}
+            >
+              Playlists
+            </Button>
+
+            <Button
+              onClick={() => history.push('/songs')}
+              sx={{
+                borderRadius: '20px',
+                px: 3,
+                py: 0.5,
+                textTransform: 'none',
+                fontWeight: 600,
+                fontSize: '14px',
+                backgroundColor: isSongsView ? '#2196F3' : 'transparent',
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: isSongsView ? '#1976D2' : 'rgba(255,255,255,0.2)',
+                },
+              }}
+            >
+              Song Catalog
+            </Button>
+          </>
+        )}
+      </Box>
+
+      {/* Center - Title */}
+      <Typography
+        variant="h5"
+        sx={{
+          position: 'absolute',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          color: 'white',
+          fontSize: '40px'
+        
+        
+        }}
+      >
+        The Playlister
+      </Typography>
+
+      {/* Right side - User avatar */}
+      <IconButton onClick={handleMenuOpen}>
+        <Avatar
+          sx={{
+            backgroundColor: '#f5a623',
+            width: 40,
+            height: 40,
+            fontSize: '14px',
+            fontWeight: 'bold',
+          }}
         >
-            <MenuItem onClick={handleLogout}>Logout</MenuItem>
-        </Menu>        
+          {auth.loggedIn ? getUserInitials() : '👤'}
+        </Avatar>
+      </IconButton>
 
-    let editToolbar = "";
-    let menu = loggedOutMenu;
-    if (auth.loggedIn) {
-        menu = loggedInMenu;
-        if (store.currentList) {
-            editToolbar = <EditToolbar />;
-        }
-    }
-    
-    function getAccountMenu(loggedIn) {
-        let userInitials = auth.getUserInitials();
-        console.log("userInitials: " + userInitials);
-        if (loggedIn) 
-            return <div>{userInitials}</div>;
-        else
-            return <AccountCircle />;
-    }
-
-    return (
-        <Box sx={{flexGrow: 1}}>
-            <AppBar position="static">
-                <Toolbar>
-                    <Typography                        
-                        variant="h4"
-                        noWrap
-                        component="div"
-                        sx={{ display: { xs: 'none', sm: 'block' } }}                        
-                    >
-                        <Link onClick={handleHouseClick} style={{ textDecoration: 'none', color: 'white' }} to='/'>⌂</Link>
-                    </Typography>
-                    <Box sx={{ flexGrow: 1 }}>{editToolbar}</Box>
-                    <Box sx={{ height: "90px", display: { xs: 'none', md: 'flex' } }}>
-                        <IconButton
-                            size="large"
-                            edge="end"
-                            aria-label="account of current user"
-                            aria-controls={menuId}
-                            aria-haspopup="true"
-                            onClick={handleProfileMenuOpen}
-                            color="inherit"
-                        >
-                            { getAccountMenu(auth.loggedIn) }
-                        </IconButton>
-                    </Box>
-                </Toolbar>
-            </AppBar>
-            {
-                menu
-            }
-        </Box>
-    );
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        {auth.loggedIn ? (
+          [
+            <MenuItem key="account" onClick={() => { handleMenuClose(); history.push('/account'); }}>
+              Edit Account
+            </MenuItem>,
+            <MenuItem key="logout" onClick={handleLogout}>
+              Logout
+            </MenuItem>
+          ]
+        ) : (
+          [
+            <MenuItem key="login" onClick={() => { handleMenuClose(); history.push('/login'); }}>
+              Login
+            </MenuItem>,
+            <MenuItem key="register" onClick={() => { handleMenuClose(); history.push('/register'); }}>
+              Create Account
+            </MenuItem>
+          ]
+        )}
+      </Menu>
+    </Box>
+  );
 }
