@@ -8,6 +8,9 @@ export default function PlaylistCard({ idNamePair }) {
   const { store } = useContext(GlobalStoreContext);
   const [expanded, setExpanded] = useState(false);
 
+  // Debug what we're receiving
+  console.log('PlaylistCard received:', idNamePair);
+
   const handleDelete = (e) => {
     e.stopPropagation();
     store.markListForDeletion(idNamePair._id);
@@ -32,10 +35,38 @@ export default function PlaylistCard({ idNamePair }) {
     setExpanded(!expanded);
   };
 
-   // Use actual data from idNamePair
-   const ownerName = idNamePair.ownerEmail ? idNamePair.ownerEmail.split('@')[0] : 'Unknown';
-   const listenerCount = idNamePair.listens || 0;
-   const songs = idNamePair.songs || [];
+  const fetchPlaylistDetails = async () => {
+    if (!expanded || songs.length > 0) return;
+    
+    try {
+      await store.loadPlaylistDetails(idNamePair._id);
+    } catch (error) {
+      console.error('Failed to load playlist details:', error);
+    }
+  };
+  
+
+
+  // SAFE data extraction with multiple fallbacks
+  const playlistName = idNamePair?.name || idNamePair?.title || 'Untitled Playlist';
+  
+  // Extract owner name - try multiple possible property names
+  const ownerEmail = idNamePair?.ownerEmail || idNamePair?.email || idNamePair?.owner || '';
+  const ownerName = idNamePair?.ownerName || 
+                   (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown') || 
+                   'Unknown';
+  
+  // Extract listener count
+  const listenerCount = idNamePair?.listens || 
+                       idNamePair?.listenerCount || 
+                       idNamePair?.playCount || 
+                       0;
+  
+  // Extract songs - try multiple possible property names
+  const songs = idNamePair?.songs || 
+                idNamePair?.items || 
+                idNamePair?.tracks || 
+                [];
 
   return (
     <Box
@@ -77,7 +108,7 @@ export default function PlaylistCard({ idNamePair }) {
                 color: '#333',
               }}
             >
-              {idNamePair.name}
+              {playlistName}
             </Typography>
             <Typography
               sx={{
@@ -187,7 +218,7 @@ export default function PlaylistCard({ idNamePair }) {
             fontWeight: 500,
           }}
         >
-          {listenerCount} Listeners
+          {listenerCount} {listenerCount === 1 ? 'Listener' : 'Listeners'}
         </Typography>
       </Box>
 
@@ -200,18 +231,38 @@ export default function PlaylistCard({ idNamePair }) {
             backgroundColor: '#fafafa',
           }}
         >
-          {songs.map((song, index) => (
+          {songs.length > 0 ? (
+            songs.map((song, index) => {
+              // Extract song info with fallbacks
+              const songTitle = song?.title || song?.name || 'Untitled Song';
+              const songArtist = song?.artist || song?.artistName || 'Unknown Artist';
+              const songYear = song?.year || song?.releaseYear || '';
+              
+              return (
+                <Typography
+                  key={song._id || `song-${index}`}
+                  sx={{
+                    fontSize: '14px',
+                    color: '#333',
+                    py: 0.5,
+                  }}
+                >
+                  {index + 1}. {songTitle} by {songArtist} {songYear ? `(${songYear})` : ''}
+                </Typography>
+              );
+            })
+          ) : (
             <Typography
-              key={song._id || index}
               sx={{
                 fontSize: '14px',
-                color: '#333',
+                color: '#999',
+                fontStyle: 'italic',
                 py: 0.5,
               }}
             >
-              {index + 1}. {song.title} by {song.artist} ({song.year})
+              No songs in this playlist yet
             </Typography>
-          ))}
+          )}
         </Box>
       </Collapse>
     </Box>

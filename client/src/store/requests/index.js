@@ -66,7 +66,12 @@ export function getPlaylistById(id) {
 
 export function getPlaylistPairs() {
     return fetchJSON(`/playlistpairs`, {
-        method: 'GET'
+        method: 'GET',
+        _id: "playlist_id",
+        name: "Playlist Name",
+        ownerEmail: "user@example.com",
+        songs: "",
+        listens: ""
     });
 }
 
