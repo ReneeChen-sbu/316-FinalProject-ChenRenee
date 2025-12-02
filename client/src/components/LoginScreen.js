@@ -61,10 +61,8 @@ export default function LoginScreen() {
             return;
         }
 
-        auth.loginUser({
-            email: formData.email,
-            password: formData.password
-        }, store);
+        auth.loginUser(formData.email, formData.password);
+
     };
 
     const handleHomeClick = () => {
@@ -235,6 +233,7 @@ export default function LoginScreen() {
                         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
                             <Button
                                 type="submit"
+                    
                                 variant="contained"
                                 sx={{ 
                                     backgroundColor: '#333',
