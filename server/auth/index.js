@@ -21,6 +21,7 @@ function authManager() {
         }
     }
 
+
     const verifyUser = (req) => {
         try {
             const token = req.cookies.token;

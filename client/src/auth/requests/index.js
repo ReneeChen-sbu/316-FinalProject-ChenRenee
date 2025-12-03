@@ -67,11 +67,21 @@ export function registerUser(firstName, lastName, email, password, passwordVerif
         })
     });
 }
+
+export function updateUserProfile(userData) {
+    return fetchJSON('/update-profile/', {
+        method: 'PUT',
+        body: JSON.stringify(userData)
+    });
+}
+
+
 const apis = {
     getLoggedIn,
     registerUser,
     loginUser,
-    logoutUser
+    logoutUser,
+    updateUserProfile 
 }
 
 export default apis

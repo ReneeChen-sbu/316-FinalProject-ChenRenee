@@ -150,7 +150,7 @@ export default function AppBanner() {
       >
         {auth.loggedIn ? (
           [
-            <MenuItem key="account" onClick={() => { handleMenuClose(); history.push('/account'); }}>
+            <MenuItem key="account" onClick={() => { handleMenuClose(); history.push('/edit-account'); }}>
               Edit Account
             </MenuItem>,
             <MenuItem key="logout" onClick={handleLogout}>

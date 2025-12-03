@@ -10,8 +10,10 @@ import {
     RegisterScreen,
     Statusbar,
     WorkspaceScreen,
-    SplashScreen
+    SplashScreen,
+    EditAccountScreen
 } from './components'
+
 
 const App = () => {   
     return (
@@ -28,6 +30,9 @@ const App = () => {
                         </Route>
                         <Route path="/register/" exact>
                             <RegisterScreen />
+                        </Route>
+                        <Route path="/edit-account" exact>
+                            <EditAccountScreen />
                         </Route>
                         
                         {/* Routes WITH AppBanner and Statusbar */}

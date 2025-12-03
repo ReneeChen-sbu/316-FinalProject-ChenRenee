@@ -13,6 +13,7 @@ import SongCard from './SongCard'
 import SplashScreen from './SplashScreen'
 import Statusbar from './Statusbar'
 import WorkspaceScreen from './WorkspaceScreen'
+import EditAccountScreen from './EditAccountScreen'
 
 /*
     This serves as a module so that we can import
@@ -35,4 +36,5 @@ export {
     RegisterScreen,
     SplashScreen,
     Statusbar, 
-    WorkspaceScreen}
+    WorkspaceScreen,
+    EditAccountScreen}

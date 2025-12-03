@@ -10,7 +10,8 @@ export const AuthActionType = {
     GET_LOGGED_IN: "GET_LOGGED_IN",
     LOGIN_USER: "LOGIN_USER",
     LOGOUT_USER: "LOGOUT_USER",
-    REGISTER_USER: "REGISTER_USER"
+    REGISTER_USER: "REGISTER_USER",
+     UPDATE_USER_PROFILE: "UPDATE_USER_PROFILE"
 }
 
 function AuthContextProvider(props) {
@@ -56,10 +57,47 @@ function AuthContextProvider(props) {
                     errorMessage: payload.errorMessage
                 })
             }
+            case AuthActionType.UPDATE_USER_PROFILE: {
+                return setAuth({
+                    user: payload.user,
+                    loggedIn: true,
+                    errorMessage: payload.errorMessage
+                });
+            }
             default:
                 return auth;
         }
     }
+
+    auth.updateUserProfile = async function(userData) {
+        try {
+            console.log('Updating user profile:', userData);
+            
+            const data = await authRequestSender.updateUserProfile(userData);
+            
+            authReducer({
+                type: AuthActionType.UPDATE_USER_PROFILE,
+                payload: {
+                    user: data.user,
+                    loggedIn: true,
+                    errorMessage: null
+                }
+            });
+            
+            return data;
+        } catch (error) {
+            console.error('Update profile error:', error);
+            authReducer({
+                type: AuthActionType.UPDATE_USER_PROFILE,
+                payload: {
+                    user: auth.user,
+                    loggedIn: true,
+                    errorMessage: error.message || "Update failed"
+                }
+            });
+            throw error;
+        }
+    };
 
     auth.getLoggedIn = async function () {
         try {
