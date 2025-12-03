@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest'
-const db = require('../../db')
+const db = require('../db/mongodb/index')
 
 describe("DatabaseManager Tests", () => {
 
     it("should create user", async () => {
         const email = `test_${Math.random()}@test.com`
         const user = await db.createUser({
-            firstName: "Test",
-            lastName: "User",
+            userName: "Test User",
             email,
             passwordHash: "fakehash123"
         })

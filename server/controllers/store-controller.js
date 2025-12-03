@@ -3,7 +3,7 @@ const User = require('../models/user-model');
 
 //changing so it uses db instead of mongoose models
 const auth = require('../auth')
-const db = require('../db')
+const db = require('../db/mongodb/index')
 
 createPlaylist = async (req, res) => {
     const body = req.body;
@@ -98,32 +98,41 @@ createPlaylist = async (req, res) => {
   // Get playlist pairs (id and name) for logged in user - includes full data for display
   getPlaylistPairs = async (req, res) => {
     try {
-      const playlists = await Playlist.find({ ownerEmail: req.userEmail })
-        .sort({ updatedAt: -1 });
-      
-      const pairs = playlists.map(playlist => ({
-        _id: playlist._id,
-        name: playlist.name,
-        ownerEmail: playlist.ownerEmail,
-        songs: playlist.songs,
-        listens: playlist.listens || 0,
-        likes: playlist.likes || 0,
-        dislikes: playlist.dislikes || 0,
-        published: playlist.published || false,
-        publishedDate: playlist.publishedDate
-      }));
-      
-      return res.status(200).json({
-        success: true,
-        idNamePairs: pairs
-      });
+        const playlists = await Playlist.find({ ownerEmail: req.userEmail })
+            .sort({ updatedAt: -1 });
+        
+        // For each playlist, find the user to get their name
+        const pairs = [];
+        for (const playlist of playlists) {
+            const user = await User.findOne({ email: playlist.ownerEmail });
+            
+            pairs.push({
+                _id: playlist._id,
+                name: playlist.name,
+                ownerEmail: playlist.ownerEmail,
+                ownerName: user ? user.firstName : 'Unknown User', // Add this!
+                songs: playlist.songs,
+                listens: playlist.listens || 0,
+                likes: playlist.likes || 0,
+                dislikes: playlist.dislikes || 0,
+                published: playlist.published || false,
+                publishedDate: playlist.publishedDate
+            });
+        }
+        
+        return res.status(200).json({
+            success: true,
+            idNamePairs: pairs
+        });
     } catch (err) {
-      return res.status(400).json({
-        success: false,
-        errorMessage: 'Failed to fetch playlists'
-      });
+        return res.status(400).json({
+            success: false,
+            errorMessage: 'Failed to fetch playlists'
+        });
     }
-  };
+};
+  
+
   
   // Get all playlists for logged in user
   getPlaylists = async (req, res) => {

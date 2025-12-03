@@ -52,9 +52,8 @@ export default function PlaylistCard({ idNamePair }) {
   
   // Extract owner name - try multiple possible property names
   const ownerEmail = idNamePair?.ownerEmail || idNamePair?.email || idNamePair?.owner || '';
-  const ownerName = idNamePair?.ownerName || 
-                   (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown') || 
-                   'Unknown';
+  // Get the display name directly
+  const ownerName = idNamePair?.ownerFirstName || idNamePair?.ownerName || 'Unknown User';
   
   // Extract listener count
   const listenerCount = idNamePair?.listens || 
@@ -67,6 +66,8 @@ export default function PlaylistCard({ idNamePair }) {
                 idNamePair?.items || 
                 idNamePair?.tracks || 
                 [];
+
+    
 
   return (
     <Box

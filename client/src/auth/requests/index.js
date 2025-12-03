@@ -55,12 +55,11 @@ export async function logoutUser() {
     return { success: true };
 }
 
-export function registerUser(firstName, lastName, email, password, passwordVerify) {
+export function registerUser(userName, email, password, passwordVerify) {
     return fetchJSON('/register', {
         method: 'POST',
         body: JSON.stringify({
-            firstName,
-            lastName,
+            userName,
             email,
             password,
             passwordVerify

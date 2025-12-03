@@ -37,11 +37,12 @@ export default function AppBanner() {
   };
 
   const getUserInitials = () => {
-    if (auth.user) {
-      return auth.user.firstName.charAt(0) + auth.user.lastName.charAt(0);
+    if (auth.user && auth.user.userName) {
+      return auth.user.userName.charAt(0).toUpperCase();
     }
     return '';
-  };
+};
+
 
   return (
     <Box

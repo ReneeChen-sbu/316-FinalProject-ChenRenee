@@ -9,6 +9,7 @@ class DatabaseManager {
     async deletePlaylist(id) { throw new Error("deletePlaylist() not implemented"); }
     async getAllPlaylists() { throw new Error("getAllPlaylists() not implemented"); }
     async getUserById(id) { throw new Error("getUserById() not implemented"); }
+    async updateUser(id, data) { throw new Error("updateUser() not implemented"); }
 
 
   }

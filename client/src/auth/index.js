@@ -122,10 +122,10 @@ function AuthContextProvider(props) {
     }
     
 
-    auth.registerUser = async function(firstName, lastName, email, password, passwordVerify) {
+    auth.registerUser = async function(userName, email, password, passwordVerify) {
         console.log("REGISTERING USER");
         try{   
-            const data = await authRequestSender.registerUser(firstName, lastName, email, password, passwordVerify);
+            const data = await authRequestSender.registerUser(userName, email, password, passwordVerify);
             authReducer({
                 type: AuthActionType.REGISTER_USER,
                 payload: {
@@ -190,15 +190,6 @@ function AuthContextProvider(props) {
     }
     
 
-    auth.getUserInitials = function() {
-        let initials = "";
-        if (auth.user) {
-            initials += auth.user.firstName.charAt(0);
-            initials += auth.user.lastName.charAt(0);
-        }
-        console.log("user initials: " + initials);
-        return initials;
-    }
 
     return (
         <AuthContext.Provider value={{

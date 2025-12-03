@@ -22,6 +22,23 @@ class MongoDatabaseManager extends DatabaseManager {
   async deletePlaylist(id) { return await Playlist.findByIdAndDelete(id); }
   async getAllPlaylists() { return await Playlist.find({}); }
   async getUserById(id) { return await User.findById(id); }
+  async updateUser(id, data) {
+    console.log('Updating user in database:', id, data);
+    
+    // Use findByIdAndUpdate to update and return the updated document
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true, runValidators: true } // new: true returns updated doc, runValidators validates the update
+    );
+    
+    if (!updatedUser) {
+      throw new Error(`User with id ${id} not found`);
+    }
+    
+    console.log('User updated successfully:', updatedUser);
+    return updatedUser;
+  }
 
 
 

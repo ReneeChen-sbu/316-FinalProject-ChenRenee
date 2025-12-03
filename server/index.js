@@ -24,10 +24,22 @@ const storeRouter = require('./routes/store-router')
 app.use('/api/store', storeRouter)
 
 // INITIALIZE OUR DATABASE OBJECT
-require('./db')
+const MongoDatabaseManager = require('./db/mongodb/index');
+const dbManager = new MongoDatabaseManager();
 
+// Connect to database before starting server
+async function startServer() {
+  try {
+    await dbManager.connect();
+    console.log('MongoDB connected successfully');
+    
+    // PUT THE SERVER IN LISTENING MODE
+    app.listen(PORT, () => console.log(`Playlister Server running on port ${PORT}`));
+  } catch (error) {
+    console.error('Failed to connect to MongoDB:', error);
+    process.exit(1); // Exit if database connection fails
+  }
+}
 
-// PUT THE SERVER IN LISTENING MODE
-app.listen(PORT, () => console.log(`Playlister Server running on port ${PORT}`))
-
+startServer();
 

@@ -30,13 +30,17 @@ export default function EditAccountScreen() {
 
     useEffect(() => {
         if (auth.user) {
+            console.log('User data for editing:', auth.user);
+    
             setFormData(prev => ({
                 ...prev,
-                userName: auth.user.firstName || '',
+                userName: auth.user.userName || '',  
                 email: auth.user.email || ''
             }));
         }
     }, [auth.user]);
+    
+    
 
     const handleInputChange = (field) => (event) => {
         const value = event.target.value;
@@ -62,12 +66,11 @@ export default function EditAccountScreen() {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        
+    
         const newErrors = {};
         if (!formData.userName) newErrors.userName = 'User name is required';
         if (!formData.email) newErrors.email = 'Email is required';
-        
-        // If trying to change password, current password is required
+    
         if (formData.newPassword) {
             if (!formData.currentPassword) {
                 newErrors.currentPassword = 'Current password is required to change password';
@@ -76,7 +79,7 @@ export default function EditAccountScreen() {
                 newErrors.passwordConfirm = 'Passwords do not match';
             }
         }
-        
+    
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
@@ -84,25 +87,24 @@ export default function EditAccountScreen() {
     
         try {
             const updateData = {
-                firstName: formData.userName,
+                userName: formData.userName,
                 email: formData.email
             };
-            
-            // Include password change if newPassword is provided
+    
             if (formData.newPassword) {
                 updateData.currentPassword = formData.currentPassword;
                 updateData.newPassword = formData.newPassword;
             }
-            
+    
             await auth.updateUserProfile(updateData);
             history.push('/home');
-            
+    
         } catch (error) {
             console.error('Update error:', error);
             alert(`Update failed: ${error.message}`);
         }
     };
-
+    
     const handleHomeClick = () => {
         history.push('/home');
     };
