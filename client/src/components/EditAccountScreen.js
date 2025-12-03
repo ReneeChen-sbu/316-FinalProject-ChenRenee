@@ -72,9 +72,6 @@ export default function EditAccountScreen() {
         if (!formData.email) newErrors.email = 'Email is required';
     
         if (formData.newPassword) {
-            if (!formData.currentPassword) {
-                newErrors.currentPassword = 'Current password is required to change password';
-            }
             if (formData.newPassword !== formData.passwordConfirm) {
                 newErrors.passwordConfirm = 'Passwords do not match';
             }
@@ -92,7 +89,6 @@ export default function EditAccountScreen() {
             };
     
             if (formData.newPassword) {
-                updateData.currentPassword = formData.currentPassword;
                 updateData.newPassword = formData.newPassword;
             }
     
@@ -294,59 +290,60 @@ export default function EditAccountScreen() {
                             }}
                         />
 
-                        {/* Password Field */}
+                        {/* New Password Field */}
                         <TextField
-                            fullWidth
-                            label="Password"
-                            type="password"
-                            value={formData.currentPassword}
-                            onChange={handleInputChange('currentPassword')}
-                            error={!!errors.currentPassword}
-                            helperText={errors.currentPassword}
-                            variant="outlined"
-                            size="small"
-                            sx={textFieldStyle}
-                            InputProps={{
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton
-                                            size="small"
-                                            onClick={handleClearField('currentPassword')}
-                                            sx={{ color: '#666' }}
-                                        >
-                                            <CancelIcon sx={{ fontSize: 20 }} />
-                                        </IconButton>
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
+                        fullWidth
+                        label="New Password"
+                        type="password"
+                        value={formData.newPassword}
+                        onChange={handleInputChange('newPassword')}
+                        error={!!errors.newPassword}
+                        helperText={errors.newPassword}
+                        variant="outlined"
+                        size="small"
+                        sx={textFieldStyle}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleClearField('newPassword')}
+                                        sx={{ color: '#666' }}
+                                    >
+                                        <CancelIcon sx={{ fontSize: 20 }} />
+                                    </IconButton>
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+                    
+                    {/* Confirm Password Field */}
+                    <TextField
+                        fullWidth
+                        label="Confirm New Password"
+                        type="password"
+                        value={formData.passwordConfirm}
+                        onChange={handleInputChange('passwordConfirm')}
+                        error={!!errors.passwordConfirm}
+                        helperText={errors.passwordConfirm}
+                        variant="outlined"
+                        size="small"
+                        sx={textFieldStyle}
+                        InputProps={{
+                            endAdornment: (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleClearField('passwordConfirm')}
+                                        sx={{ color: '#666' }}
+                                    >
+                                        <CancelIcon sx={{ fontSize: 20 }} />
+                                    </IconButton>
+                                </InputAdornment>
+                            )
+                        }}
+                    />
 
-                        {/* Password Confirm Field */}
-                        <TextField
-                            fullWidth
-                            label="Password Confirm"
-                            type="password"
-                            value={formData.passwordConfirm}
-                            onChange={handleInputChange('passwordConfirm')}
-                            error={!!errors.passwordConfirm}
-                            helperText={errors.passwordConfirm}
-                            variant="outlined"
-                            size="small"
-                            sx={textFieldStyle}
-                            InputProps={{
-                                endAdornment: (
-                                    <InputAdornment position="end">
-                                        <IconButton
-                                            size="small"
-                                            onClick={handleClearField('passwordConfirm')}
-                                            sx={{ color: '#666' }}
-                                        >
-                                            <CancelIcon sx={{ fontSize: 20 }} />
-                                        </IconButton>
-                                    </InputAdornment>
-                                )
-                            }}
-                        />
 
                         {/* Buttons */}
                         <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>

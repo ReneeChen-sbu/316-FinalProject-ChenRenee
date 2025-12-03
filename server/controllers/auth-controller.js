@@ -224,14 +224,6 @@ updateUserProfile = async (req, res) => {
 
         // Update password (if requested)
         if (newPassword) {
-            if (!currentPassword) {
-                return res.status(400).json({
-                    success: false,
-                    errorMessage: 'Current password is required to change password'
-                });
-            }
-
-            console.log('Verifying current password...');
             const passwordCorrect = await bcrypt.compare(
                 currentPassword,
                 user.passwordHash

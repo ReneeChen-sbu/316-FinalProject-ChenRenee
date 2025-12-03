@@ -191,41 +191,50 @@ export default function RegisterScreen() {
 
     const handleRegistrationSubmit = async (event) => {
         event.preventDefault();
-
+      
         if (!canRegister()) {
-            return;
+          return;
         }
-
-        // Process registration
-        const registrationResult = await auth.createNewAccount(
+      
+        // Process registration 
+        try {
+          await auth.registerUser(
             registrationInfo.userName.trim(),
             registrationInfo.emailAddress,
             registrationInfo.password,
-            registrationInfo.confirmPassword,
-            profilePicture
-        );
-
-        if (registrationResult.successful) {
-            // Redirect to login after successful registration
-            history.push('/login/'); // Changed from navigate to history.push
-        } else {
-            // Display registration error
-            if (registrationResult.errorMessage) {
-                if (registrationResult.errorMessage.includes('email')) {
-                    setValidationMessages(prev => ({
-                        ...prev,
-                        emailAddress: registrationResult.errorMessage
-                    }));
-                } else {
-                    // Error shown on email field
-                    setValidationMessages(prev => ({
-                        ...prev,
-                        emailAddress: registrationResult.errorMessage
-                    }));
-                }
+            registrationInfo.confirmPassword
+          );
+          
+          // If we get here without error, registration was successful. The auth.registerUser will automatically redirect to /login
+        
+          
+        } catch (error) {
+          console.error('Registration error:', error);
+          
+          
+          if (auth.errorMessage) {
+            const errorMsg = auth.errorMessage;
+            if (errorMsg.includes('email') || errorMsg.includes('Email')) {
+              setValidationMessages(prev => ({
+                ...prev,
+                emailAddress: errorMsg
+              }));
+            } else {
+              setValidationMessages(prev => ({
+                ...prev,
+                emailAddress: errorMsg
+              }));
             }
+          } else if (error.message) {
+            // Fallback to the caught error
+            setValidationMessages(prev => ({
+              ...prev,
+              emailAddress: error.message
+            }));
+          }
         }
-    };
+      };
+
 
     const handleReturnHome = () => {
         history.push('/'); // Changed from navigate to history.push
@@ -379,68 +388,76 @@ export default function RegisterScreen() {
 
                             {/* User Name Field */}
                             <Box sx={{ flex: 1 }}>
-                                <TextField
-                                    fullWidth
-                                    label="User Name"
-                                    value={registrationInfo.userName}
-                                    onChange={handleFieldUpdate('userName')}
-                                    error={!!validationMessages.userName}
-                                    helperText={validationMessages.userName}
-                                    variant="standard"
-                                    InputProps={{
-                                        endAdornment: registrationInfo.userName && (
-                                            <InputAdornment position="end">
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={handleFieldClear('userName')}
-                                                    sx={{ 
-                                                        backgroundColor: '#999',
-                                                        color: 'white',
-                                                        width: 20,
-                                                        height: 20,
-                                                        '&:hover': { backgroundColor: '#777' }
-                                                    }}
-                                                >
-                                                    <ClearIcon sx={{ fontSize: 14 }} />
-                                                </IconButton>
-                                            </InputAdornment>
-                                        )
-                                    }}
-                                />
+                            <TextField
+                            fullWidth
+                            label="User Name"
+                            name="username"
+                            type="text"
+                            autoComplete="username"
+                            value={registrationInfo.userName}
+                            onChange={handleFieldUpdate('userName')}
+                            error={!!validationMessages.userName}
+                            helperText={validationMessages.userName}
+                            variant="standard"
+                            inputProps={{ autoComplete: 'off' }}
+                            InputProps={{
+                                endAdornment: registrationInfo.userName && (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleFieldClear('userName')}
+                                            sx={{ 
+                                                backgroundColor: '#999',
+                                                color: 'white',
+                                                width: 20,
+                                                height: 20,
+                                                '&:hover': { backgroundColor: '#777' }
+                                            }}
+                                        >
+                                            <ClearIcon sx={{ fontSize: 14 }} />
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
+
                             </Box>
                         </Box>
 
                         {/* Email Address Field */}
                         <Box sx={{ mb: 2, ml: 9 }}>
-                            <TextField
-                                fullWidth
-                                label="Email Address"
-                                type="email"
-                                value={registrationInfo.emailAddress}
-                                onChange={handleFieldUpdate('emailAddress')}
-                                error={!!validationMessages.emailAddress}
-                                helperText={validationMessages.emailAddress}
-                                variant="standard"
-                                InputProps={{
-                                    endAdornment: registrationInfo.emailAddress && (
-                                        <InputAdornment position="end">
-                                            <IconButton
-                                                size="small"
-                                                onClick={handleFieldClear('emailAddress')}
-                                                sx={{ 
-                                                    backgroundColor: '#999',
-                                                    color: 'white',
-                                                    width: 20,
-                                                    height: 20,
-                                                    '&:hover': { backgroundColor: '#777' }
-                                                }}
-                                            >
-                                                <ClearIcon sx={{ fontSize: 14 }} />
-                                            </IconButton>
-                                        </InputAdornment>
-                                    )
-                                }}
-                            />
+                        <TextField
+                        fullWidth
+                        label="Email Address"
+                        name="email"
+                        type="email"
+                        autoComplete="email"
+                        value={registrationInfo.emailAddress}
+                        onChange={handleFieldUpdate('emailAddress')}
+                        error={!!validationMessages.emailAddress}
+                        helperText={validationMessages.emailAddress}
+                        variant="standard"
+                        InputProps={{
+                            endAdornment: registrationInfo.emailAddress && (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        size="small"
+                                        onClick={handleFieldClear('emailAddress')}
+                                        sx={{ 
+                                            backgroundColor: '#999',
+                                            color: 'white',
+                                            width: 20,
+                                            height: 20,
+                                            '&:hover': { backgroundColor: '#777' }
+                                        }}
+                                    >
+                                        <ClearIcon sx={{ fontSize: 14 }} />
+                                    </IconButton>
+                                </InputAdornment>
+                            )
+                        }}
+                    />
+
                         </Box>
 
                         {/* Password Key Field */}
