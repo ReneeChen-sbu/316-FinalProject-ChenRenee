@@ -22,7 +22,8 @@ export default function EditAccountScreen() {
     const [formData, setFormData] = useState({
         userName: '',
         email: '',
-        password: '',
+        currentPassword: '',
+        newPassword: '',
         passwordConfirm: ''
     });
     const [errors, setErrors] = useState({});
@@ -66,16 +67,40 @@ export default function EditAccountScreen() {
         if (!formData.userName) newErrors.userName = 'User name is required';
         if (!formData.email) newErrors.email = 'Email is required';
         
-        if (formData.password && formData.password !== formData.passwordConfirm) {
-            newErrors.passwordConfirm = 'Passwords do not match';
+        // If trying to change password, current password is required
+        if (formData.newPassword) {
+            if (!formData.currentPassword) {
+                newErrors.currentPassword = 'Current password is required to change password';
+            }
+            if (formData.newPassword !== formData.passwordConfirm) {
+                newErrors.passwordConfirm = 'Passwords do not match';
+            }
         }
         
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
             return;
         }
-
-        history.push('/home');
+    
+        try {
+            const updateData = {
+                firstName: formData.userName,
+                email: formData.email
+            };
+            
+            // Include password change if newPassword is provided
+            if (formData.newPassword) {
+                updateData.currentPassword = formData.currentPassword;
+                updateData.newPassword = formData.newPassword;
+            }
+            
+            await auth.updateUserProfile(updateData);
+            history.push('/home');
+            
+        } catch (error) {
+            console.error('Update error:', error);
+            alert(`Update failed: ${error.message}`);
+        }
     };
 
     const handleHomeClick = () => {
@@ -272,10 +297,10 @@ export default function EditAccountScreen() {
                             fullWidth
                             label="Password"
                             type="password"
-                            value={formData.password}
-                            onChange={handleInputChange('password')}
-                            error={!!errors.password}
-                            helperText={errors.password}
+                            value={formData.currentPassword}
+                            onChange={handleInputChange('currentPassword')}
+                            error={!!errors.currentPassword}
+                            helperText={errors.currentPassword}
                             variant="outlined"
                             size="small"
                             sx={textFieldStyle}
@@ -284,7 +309,7 @@ export default function EditAccountScreen() {
                                     <InputAdornment position="end">
                                         <IconButton
                                             size="small"
-                                            onClick={handleClearField('password')}
+                                            onClick={handleClearField('currentPassword')}
                                             sx={{ color: '#666' }}
                                         >
                                             <CancelIcon sx={{ fontSize: 20 }} />

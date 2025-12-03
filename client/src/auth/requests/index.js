@@ -36,7 +36,7 @@ async function fetchJSON(path, options = {}) {
 
 //api requests
 export function getLoggedIn () {
-    return fetchJSON('/loggedIn/', { method: 'GET' });
+    return fetchJSON('/loggedIn', { method: 'GET' });
 
 }
 
@@ -56,7 +56,7 @@ export async function logoutUser() {
 }
 
 export function registerUser(firstName, lastName, email, password, passwordVerify) {
-    return fetchJSON('/register/', {
+    return fetchJSON('/register', {
         method: 'POST',
         body: JSON.stringify({
             firstName,
@@ -69,7 +69,7 @@ export function registerUser(firstName, lastName, email, password, passwordVerif
 }
 
 export function updateUserProfile(userData) {
-    return fetchJSON('/update-profile/', {
+    return fetchJSON('/update-profile', {  
         method: 'PUT',
         body: JSON.stringify(userData)
     });
