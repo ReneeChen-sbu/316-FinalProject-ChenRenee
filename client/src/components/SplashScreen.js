@@ -1,35 +1,23 @@
-import { useContext, useState } from 'react';
+import { useContext } from 'react';
 import AuthContext from '../auth';
 import { GlobalStoreContext } from '../store';
 import { Button, Box, IconButton } from '@mui/material';
-import { Link } from 'react-router-dom';
 import HomeIcon from '@mui/icons-material/Home';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
-import HomeScreen from './HomeScreen'
+import { Link } from 'react-router-dom';
 
 export default function SplashScreen() {
     const { auth } = useContext(AuthContext);
     const { store } = useContext(GlobalStoreContext);
-    const [guestState, setGuestState] = useState(false);
-
+    
     const handleGuestButton = () => {
-        setGuestState(true);
-        auth.loggedIn = true;
-    }
-
-    if (guestState) {
-        return <HomeScreen />
+        auth.loginAsGuest();
     }
 
     return (
         <Box 
             sx={{
-                position: 'fixed',  // Changed to fixed to ensure full coverage
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
                 width: '100%',
                 height: '100vh',
                 backgroundColor: '#f8e0f0',
@@ -37,7 +25,6 @@ export default function SplashScreen() {
                 justifyContent: 'center',
                 alignItems: 'center',
                 padding: 4,
-                zIndex: 9999  // Ensure it's on top
             }}
         >
             {/* Main Container */}

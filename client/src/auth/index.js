@@ -188,8 +188,31 @@ function AuthContextProvider(props) {
             console.error("logout failed", err);
         }
     }
-    
 
+    auth.loginAsGuest = function() {
+        console.log("LOGGING IN AS GUEST");
+        
+        // Create guest user object
+        const guestUser = {
+          userName: "Guest",
+          email: "guest@playlister.com",
+          isGuest: true
+        };
+        
+        // Update auth state
+        authReducer({
+          type: AuthActionType.LOGIN_USER, 
+          payload: {
+            user: guestUser,
+            loggedIn: true,
+            errorMessage: null
+          }
+        });
+        
+        // Navigate to home
+        history.push("/home");
+      }
+        
 
     return (
         <AuthContext.Provider value={{
