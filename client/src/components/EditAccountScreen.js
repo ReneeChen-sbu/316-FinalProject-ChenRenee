@@ -22,7 +22,6 @@ export default function EditAccountScreen() {
     const [formData, setFormData] = useState({
         userName: '',
         email: '',
-        currentPassword: '',
         newPassword: '',
         passwordConfirm: ''
     });
@@ -35,12 +34,12 @@ export default function EditAccountScreen() {
             setFormData(prev => ({
                 ...prev,
                 userName: auth.user.userName || '',  
-                email: auth.user.email || ''
+                email: auth.user.email || '',
+                newPassword: '', // Clear password fields
+                passwordConfirm: ''
             }));
         }
     }, [auth.user]);
-    
-    
 
     const handleInputChange = (field) => (event) => {
         const value = event.target.value;
@@ -68,10 +67,18 @@ export default function EditAccountScreen() {
         event.preventDefault();
     
         const newErrors = {};
-        if (!formData.userName) newErrors.userName = 'User name is required';
-        if (!formData.email) newErrors.email = 'Email is required';
-    
-        if (formData.newPassword) {
+        
+        // User name validation
+        if (!formData.userName.trim()) {
+            newErrors.userName = 'User name is required';
+        }
+        
+        // Password validation (only if trying to change password)
+        if (formData.newPassword || formData.passwordConfirm) {
+            if (formData.newPassword && formData.newPassword.length < 8) {
+                newErrors.newPassword = 'Password must be at least 8 characters';
+            }
+            
             if (formData.newPassword !== formData.passwordConfirm) {
                 newErrors.passwordConfirm = 'Passwords do not match';
             }
@@ -84,20 +91,23 @@ export default function EditAccountScreen() {
     
         try {
             const updateData = {
-                userName: formData.userName,
-                email: formData.email
+                userName: formData.userName.trim()
+                // Email is NOT sent (cannot be changed per requirements)
             };
     
+            // Only include new password if provided
             if (formData.newPassword) {
                 updateData.newPassword = formData.newPassword;
             }
     
+            console.log('Sending update data:', updateData);
             await auth.updateUserProfile(updateData);
             history.push('/home');
     
         } catch (error) {
             console.error('Update error:', error);
-            alert(`Update failed: ${error.message}`);
+            const errorMessage = error.message || 'Update failed. Please try again.';
+            alert(`Update failed: ${errorMessage}`);
         }
     };
     
@@ -263,15 +273,33 @@ export default function EditAccountScreen() {
                             }}
                         />
 
-                        {/* Email Field */}
+                        {/* Email Field - DISABLED (cannot be changed) */}
                         <TextField
                             fullWidth
                             label="Email"
                             type="email"
                             value={formData.email}
-                            onChange={handleInputChange('email')}
-                            error={!!errors.email}
-                            helperText={errors.email}
+                            disabled // Disable email field
+                            variant="outlined"
+                            size="small"
+                            sx={{
+                                ...textFieldStyle,
+                                '& .MuiInputBase-input.Mui-disabled': {
+                                    WebkitTextFillColor: '#666',
+                                }
+                            }}
+                            helperText="Email cannot be changed"
+                        />
+
+                        {/* New Password Field */}
+                        <TextField
+                            fullWidth
+                            label="New Password"
+                            type="password"
+                            value={formData.newPassword}
+                            onChange={handleInputChange('newPassword')}
+                            error={!!errors.newPassword}
+                            helperText={errors.newPassword || 'Leave blank to keep current password'}
                             variant="outlined"
                             size="small"
                             sx={textFieldStyle}
@@ -280,7 +308,7 @@ export default function EditAccountScreen() {
                                     <InputAdornment position="end">
                                         <IconButton
                                             size="small"
-                                            onClick={handleClearField('email')}
+                                            onClick={handleClearField('newPassword')}
                                             sx={{ color: '#666' }}
                                         >
                                             <CancelIcon sx={{ fontSize: 20 }} />
@@ -289,61 +317,33 @@ export default function EditAccountScreen() {
                                 )
                             }}
                         />
-
-                        {/* New Password Field */}
-                        <TextField
-                        fullWidth
-                        label="New Password"
-                        type="password"
-                        value={formData.newPassword}
-                        onChange={handleInputChange('newPassword')}
-                        error={!!errors.newPassword}
-                        helperText={errors.newPassword}
-                        variant="outlined"
-                        size="small"
-                        sx={textFieldStyle}
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton
-                                        size="small"
-                                        onClick={handleClearField('newPassword')}
-                                        sx={{ color: '#666' }}
-                                    >
-                                        <CancelIcon sx={{ fontSize: 20 }} />
-                                    </IconButton>
-                                </InputAdornment>
-                            )
-                        }}
-                    />
                     
-                    {/* Confirm Password Field */}
-                    <TextField
-                        fullWidth
-                        label="Confirm New Password"
-                        type="password"
-                        value={formData.passwordConfirm}
-                        onChange={handleInputChange('passwordConfirm')}
-                        error={!!errors.passwordConfirm}
-                        helperText={errors.passwordConfirm}
-                        variant="outlined"
-                        size="small"
-                        sx={textFieldStyle}
-                        InputProps={{
-                            endAdornment: (
-                                <InputAdornment position="end">
-                                    <IconButton
-                                        size="small"
-                                        onClick={handleClearField('passwordConfirm')}
-                                        sx={{ color: '#666' }}
-                                    >
-                                        <CancelIcon sx={{ fontSize: 20 }} />
-                                    </IconButton>
-                                </InputAdornment>
-                            )
-                        }}
-                    />
-
+                        {/* Confirm Password Field */}
+                        <TextField
+                            fullWidth
+                            label="Confirm New Password"
+                            type="password"
+                            value={formData.passwordConfirm}
+                            onChange={handleInputChange('passwordConfirm')}
+                            error={!!errors.passwordConfirm}
+                            helperText={errors.passwordConfirm}
+                            variant="outlined"
+                            size="small"
+                            sx={textFieldStyle}
+                            InputProps={{
+                                endAdornment: (
+                                    <InputAdornment position="end">
+                                        <IconButton
+                                            size="small"
+                                            onClick={handleClearField('passwordConfirm')}
+                                            sx={{ color: '#666' }}
+                                        >
+                                            <CancelIcon sx={{ fontSize: 20 }} />
+                                        </IconButton>
+                                    </InputAdornment>
+                                )
+                            }}
+                        />
 
                         {/* Buttons */}
                         <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
@@ -399,3 +399,4 @@ export default function EditAccountScreen() {
         </Box>
     );
 }
+

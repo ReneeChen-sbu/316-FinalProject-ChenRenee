@@ -75,6 +75,7 @@ function AuthContextProvider(props) {
             
             const data = await authRequestSender.updateUserProfile(userData);
             
+            // Update local auth state with new user data
             authReducer({
                 type: AuthActionType.UPDATE_USER_PROFILE,
                 payload: {

@@ -188,7 +188,7 @@ registerUser = async (req, res) => {
 updateUserProfile = async (req, res) => {
     try {
         console.log('UPDATE PROFILE ROUTE HIT - UPDATING DATABASE');
-        const { userName, email, currentPassword, newPassword } = req.body;
+        const { userName, newPassword } = req.body;
         const userId = req.userId;
 
         console.log('User ID:', userId);
@@ -208,34 +208,8 @@ updateUserProfile = async (req, res) => {
             user.userName = userName;
         }
 
-        // Update email (if changed)
-        if (email && email !== user.email) {
-            console.log(`Checking if email "${email}" is available...`);
-            const existingUser = await User.findOne({ email });
-            if (existingUser && existingUser._id.toString() !== userId.toString()) {
-                return res.status(400).json({
-                    success: false,
-                    errorMessage: 'Email already in use'
-                });
-            }
-            console.log(`Email available, updating from "${user.email}" to "${email}"`);
-            user.email = email;
-        }
-
         // Update password (if requested)
         if (newPassword) {
-            const passwordCorrect = await bcrypt.compare(
-                currentPassword,
-                user.passwordHash
-            );
-
-            if (!passwordCorrect) {
-                return res.status(400).json({
-                    success: false,
-                    errorMessage: 'Current password is incorrect'
-                });
-            }
-
             if (newPassword.length < 8) {
                 return res.status(400).json({
                     success: false,
@@ -247,6 +221,7 @@ updateUserProfile = async (req, res) => {
             const saltRounds = 10;
             const salt = await bcrypt.genSalt(saltRounds);
             user.passwordHash = await bcrypt.hash(newPassword, salt);
+            console.log('Password updated successfully');
         }
 
         user.updatedAt = new Date();
@@ -277,6 +252,7 @@ updateUserProfile = async (req, res) => {
         });
     }
 };
+
 
 module.exports = {
     getLoggedIn,
