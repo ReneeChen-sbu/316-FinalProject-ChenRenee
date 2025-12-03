@@ -41,8 +41,10 @@ export default function AppBanner() {
       return auth.user.userName.charAt(0).toUpperCase();
     }
     return '';
-};
+  };
 
+  // Check if user is a guest
+  const isGuest = auth.user && auth.user.isGuest;
 
   return (
     <Box
@@ -113,7 +115,7 @@ export default function AppBanner() {
         )}
       </Box>
 
-      {/*Title */}
+      {/* Title */}
       <Typography
         variant="h5"
         sx={{
@@ -122,8 +124,6 @@ export default function AppBanner() {
           transform: 'translateX(-50%)',
           color: 'white',
           fontSize: '40px'
-        
-        
         }}
       >
         The Playlister
@@ -149,7 +149,8 @@ export default function AppBanner() {
         open={Boolean(anchorEl)}
         onClose={handleMenuClose}
       >
-        {auth.loggedIn ? (
+        {/* Show Edit Account/Logout only for regular logged-in users (not guests) */}
+        {auth.loggedIn && !isGuest ? (
           [
             <MenuItem key="account" onClick={() => { handleMenuClose(); history.push('/edit-account'); }}>
               Edit Account
@@ -159,6 +160,7 @@ export default function AppBanner() {
             </MenuItem>
           ]
         ) : (
+          // For everyone else (not logged in OR guests), show Login/Create Account
           [
             <MenuItem key="login" onClick={() => { handleMenuClose(); history.push('/login'); }}>
               Login
