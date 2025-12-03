@@ -95,45 +95,57 @@ createPlaylist = async (req, res) => {
     }
   };
   
-  // Get playlist pairs (id and name) for logged in user - includes full data for display
+  // Get playlist pairs (id and name) for logged in user 
   getPlaylistPairs = async (req, res) => {
     try {
-        const playlists = await Playlist.find({ ownerEmail: req.userEmail })
-            .sort({ updatedAt: -1 });
-        
-        // For each playlist, find the user to get their name
-        const pairs = [];
-        for (const playlist of playlists) {
-            const user = await User.findOne({ email: playlist.ownerEmail });
-            
-            pairs.push({
-                _id: playlist._id,
-                name: playlist.name,
-                ownerEmail: playlist.ownerEmail,
-                ownerName: user ? user.firstName : 'Unknown User', // Add this!
-                songs: playlist.songs,
-                listens: playlist.listens || 0,
-                likes: playlist.likes || 0,
-                dislikes: playlist.dislikes || 0,
-                published: playlist.published || false,
-                publishedDate: playlist.publishedDate
-            });
-        }
-        
-        return res.status(200).json({
-            success: true,
-            idNamePairs: pairs
-        });
+      const playlists = await Playlist.find({ ownerEmail: req.userEmail })
+        .sort({ updatedAt: -1 });
+  
+      const pairs = [];
+      for (const playlist of playlists) {
+        const user = await User.findOne({ email: playlist.ownerEmail });
+  
+        // Choose the display name
+        const displayName =
+          user?.userName ||
+          user?.firstName ||      // old data fallback
+          (user?.email ? user.email.split('@')[0] : 'Unknown User');
+  
+        const pair = {
+          _id: playlist._id,
+          name: playlist.name,
+          ownerEmail: playlist.ownerEmail,
+  
+          
+          userName: displayName,
+          ownerName: displayName,
+          ownerUserName: displayName,
+  
+          songs: playlist.songs,
+          listens: playlist.listens || 0,
+          likes: playlist.likes || 0,
+          dislikes: playlist.dislikes || 0,
+          published: playlist.published || false,
+          publishedDate: playlist.publishedDate
+        };
+  
+        console.log('PAIR SENT TO CLIENT:', pair); 
+        pairs.push(pair);
+      }
+  
+      return res.status(200).json({
+        success: true,
+        idNamePairs: pairs
+      });
     } catch (err) {
-        return res.status(400).json({
-            success: false,
-            errorMessage: 'Failed to fetch playlists'
-        });
+      console.error('getPlaylistPairs error:', err);
+      return res.status(400).json({
+        success: false,
+        errorMessage: 'Failed to fetch playlists'
+      });
     }
-};
-  
+  };
 
-  
   // Get all playlists for logged in user
   getPlaylists = async (req, res) => {
     try {

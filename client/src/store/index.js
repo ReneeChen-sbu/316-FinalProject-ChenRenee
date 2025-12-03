@@ -362,27 +362,11 @@ function GlobalStoreContextProvider(props) {
         try {
             const response = await storeRequestSender.getPlaylistPairs();
             if (response.success) {
-                // Get FULL playlist data, not just ID-name pairs
-                const fullPlaylists = await Promise.all(
-                    response.idNamePairs.map(async (pair) => {
-                        try {
-                            const playlistResponse = await storeRequestSender.getPlaylistById(pair._id ?? pair.id);
-                            if (playlistResponse.success) {
-                                return playlistResponse.playlist;
-                            }
-                            return { _id: pair._id ?? pair.id, name: pair.name };
-                        } catch (error) {
-                            console.error(`Failed to load playlist ${pair._id}:`, error);
-                            return { _id: pair._id ?? pair.id, name: pair.name };
-                        }
-                    })
-                );
-    
-                console.log('Loaded full playlists:', fullPlaylists);
+               console.log('idNamePairs from server:', response.idNamePairs);
                 
                 storeReducer({
                     type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
-                    payload: fullPlaylists
+                    payload: response.idNamePairs
                 });
             } else {
                 console.log("FAILED TO GET THE LIST PAIRS");
