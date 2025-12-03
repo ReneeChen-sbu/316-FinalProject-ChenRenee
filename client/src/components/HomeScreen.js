@@ -7,13 +7,10 @@ import {
     Typography, 
     Select, 
     MenuItem, 
-    FormControl,
-    InputAdornment,
-    IconButton
+    FormControl
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import ClearIcon from '@mui/icons-material/Clear';
 import PlaylistCard from './PlaylistCard';
 import MUIDeleteModal from './MUIDeleteModal';
 
@@ -30,13 +27,90 @@ export default function HomeScreen() {
         store.loadIdNamePairs();
     }, []);
 
+    const handleSearch = () => {
+        console.log('🔍 Search button clicked');
+        console.log('Filters:', {
+            playlistNameFilter,
+            userNameFilter,
+            songTitleFilter,
+            songArtistFilter,
+            songYearFilter
+        });
+        
+        // Build search query from all filters
+        const searchTerms = [];
+        if (playlistNameFilter) {
+            console.log(`Adding playlist filter: ${playlistNameFilter}`);
+            searchTerms.push(`playlist:${playlistNameFilter}`);
+        }
+        if (userNameFilter) {
+            console.log(`Adding user filter: ${userNameFilter}`);
+            searchTerms.push(`username:${userNameFilter}`);
+        }
+        if (songTitleFilter) {
+            console.log(`Adding title filter: ${songTitleFilter}`);
+            searchTerms.push(`title:${songTitleFilter}`);
+        }
+        if (songArtistFilter) {
+            console.log(`Adding artist filter: ${songArtistFilter}`);
+            searchTerms.push(`artist:${songArtistFilter}`);
+        }
+        if (songYearFilter) {
+            console.log(`Adding year filter: ${songYearFilter}`);
+            searchTerms.push(`year:${songYearFilter}`);
+        }
+        
+        const query = searchTerms.join(' ');
+        console.log('Final search query:', query);
+        
+        store.searchPlaylists(query);
+    };
+
     const handleClear = () => {
         setPlaylistNameFilter('');
         setUserNameFilter('');
         setSongTitleFilter('');
         setSongArtistFilter('');
         setSongYearFilter('');
+        store.clearSearch();
     };
+
+    const sortPlaylists = (playlists) => {
+        if (!playlists) return [];
+        
+        const sorted = [...playlists];
+        switch(sortBy) {
+            case 'listeners-hi-lo':
+                return sorted.sort((a, b) => (b.listens || 0) - (a.listens || 0));
+            case 'listeners-lo-hi':
+                return sorted.sort((a, b) => (a.listens || 0) - (b.listens || 0));
+            case 'name-a-z':
+                return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+            case 'name-z-a':
+                return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
+            case 'owner-a-z':
+                return sorted.sort((a, b) => {
+                    const ownerA = a.ownerEmail ? a.ownerEmail.split('@')[0] : '';
+                    const ownerB = b.ownerEmail ? b.ownerEmail.split('@')[0] : '';
+                    return ownerA.localeCompare(ownerB);
+                });
+            case 'owner-z-a':
+                return sorted.sort((a, b) => {
+                    const ownerA = a.ownerEmail ? a.ownerEmail.split('@')[0] : '';
+                    const ownerB = b.ownerEmail ? b.ownerEmail.split('@')[0] : '';
+                    return ownerB.localeCompare(ownerA);
+                });
+            default:
+                return sorted;
+        }
+    };
+
+    // Use filtered playlists when searching, otherwise use all playlists
+    const displayPlaylists = store.isSearching ? 
+        store.filteredPlaylists : 
+        store.idNamePairs;
+    
+    const sortedPlaylists = sortPlaylists(displayPlaylists);
 
     return (
         <Box sx={{ 
@@ -130,6 +204,7 @@ export default function HomeScreen() {
                     <Button
                         variant="contained"
                         startIcon={<SearchIcon />}
+                        onClick={handleSearch}
                         sx={{
                             flex: 1,
                             backgroundColor: '#9c27b0',
@@ -154,6 +229,20 @@ export default function HomeScreen() {
                         Clear
                     </Button>
                 </Box>
+
+                {/* Search Status */}
+                {store.isSearching && (
+                    <Box sx={{ mt: 2, p: 2, backgroundColor: '#e8e0f8', borderRadius: 2 }}>
+                        <Typography variant="body2" color="#9c27b0">
+                            Found {store.filteredPlaylists.length} playlist{store.filteredPlaylists.length !== 1 ? 's' : ''}
+                            {store.searchQuery && (
+                                <Typography variant="caption" component="div" sx={{ mt: 0.5, color: '#666' }}>
+                                    Search: {store.searchQuery}
+                                </Typography>
+                            )}
+                        </Typography>
+                    </Box>
+                )}
             </Box>
 
             {/* Right content - Playlists */}
@@ -177,14 +266,31 @@ export default function HomeScreen() {
                         </FormControl>
                     </Box>
                     <Typography sx={{ fontWeight: 600, color: '#666' }}>
-                        {store.idNamePairs ? store.idNamePairs.length : 0} Playlists
+                        {sortedPlaylists ? sortedPlaylists.length : 0} Playlist{sortedPlaylists && sortedPlaylists.length !== 1 ? 's' : ''}
+                        {store.isSearching && ' (filtered)'}
                     </Typography>
                 </Box>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-                    {store.idNamePairs && store.idNamePairs.map((pair) => (
-                        <PlaylistCard key={pair._id} idNamePair={pair} />
-                    ))}
+                    {sortedPlaylists && sortedPlaylists.length > 0 ? (
+                        sortedPlaylists.map((pair) => (
+                            <PlaylistCard key={pair._id} idNamePair={pair} />
+                        ))
+                    ) : (
+                        <Box sx={{ 
+                            textAlign: 'center', 
+                            py: 8,
+                            backgroundColor: 'white',
+                            borderRadius: 2,
+                            border: '1px solid #e0e0e0'
+                        }}>
+                            <Typography variant="h6" color="text.secondary">
+                                {store.isSearching ? 
+                                    'No playlists match your search criteria.' : 
+                                    'No playlists yet. Create your first playlist!'}
+                            </Typography>
+                        </Box>
+                    )}
                 </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>

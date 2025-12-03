@@ -6,7 +6,8 @@
 const express = require('express');
 const StoreController = require('../controllers/store-controller');
 const router = express.Router();
-const auth = require('../middleware/auth');
+const authManager = require('../auth/index');
+const auth = authManager.verify;
 
 router.post('/playlist', auth, StoreController.createPlaylist);
 router.delete('/playlist/:id', auth, StoreController.deletePlaylist);

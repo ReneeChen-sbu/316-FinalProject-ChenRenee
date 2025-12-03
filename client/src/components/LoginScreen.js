@@ -1,4 +1,4 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import AuthContext from '../auth';
 import { GlobalStoreContext } from '../store';
 import { Button, Box, IconButton, TextField, Typography, InputAdornment, Modal } from '@mui/material';
@@ -7,6 +7,7 @@ import HomeIcon from '@mui/icons-material/Home';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import ClearIcon from '@mui/icons-material/Clear';
+
 
 export default function LoginScreen() {
     const { auth } = useContext(AuthContext);
@@ -21,6 +22,13 @@ export default function LoginScreen() {
     });
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
+
+    useEffect(() => {
+        if (auth.errorMessage && !showErrorModal) {
+            setErrorMessage(auth.errorMessage);
+            setShowErrorModal(true);
+        }
+    }, [auth.errorMessage, showErrorModal]);
 
     const handleInputChange = (field) => (event) => {
         const value = event.target.value;
@@ -77,7 +85,6 @@ export default function LoginScreen() {
     if (auth.errorMessage && !showErrorModal) {
         setErrorMessage(auth.errorMessage);
         setShowErrorModal(true);
-        auth.clearError();
     }
 
     return (

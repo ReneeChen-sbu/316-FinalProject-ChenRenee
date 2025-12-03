@@ -32,7 +32,11 @@ export const GlobalStoreActionType = {
     EDIT_SONG: "EDIT_SONG",
     REMOVE_SONG: "REMOVE_SONG",
     HIDE_MODALS: "HIDE_MODALS",
-    LOGOUT: "LOGOUT"
+    LOGOUT: "LOGOUT",
+    SET_SEARCH_QUERY: "SET_SEARCH_QUERY",
+    CLEAR_SEARCH: "CLEAR_SEARCH",
+    FILTER_PLAYLISTS: "FILTER_PLAYLISTS",
+
 }
 
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
@@ -58,7 +62,10 @@ function GlobalStoreContextProvider(props) {
         newListCounter: 0,
         listNameActive: false,
         listIdMarkedForDeletion: null,
-        listMarkedForDeletion: null
+        listMarkedForDeletion: null,
+        searchQuery: "", 
+        filteredPlaylists: [], 
+        isSearching: false 
     });
     const history = useHistory();
 
@@ -228,6 +235,29 @@ function GlobalStoreContextProvider(props) {
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
                     listMarkedForDeletion: null
+                });
+            }
+
+            case GlobalStoreActionType.SET_SEARCH_QUERY: {
+                return setStore({
+                    ...store,
+                    searchQuery: payload.query,
+                    isSearching: !!payload.query.trim()
+                });
+            }
+            case GlobalStoreActionType.CLEAR_SEARCH: {
+                return setStore({
+                    ...store,
+                    searchQuery: "",
+                    filteredPlaylists: [],
+                    isSearching: false
+                });
+            }
+            case GlobalStoreActionType.FILTER_PLAYLISTS: {
+                return setStore({
+                    ...store,
+                    filteredPlaylists: payload.filteredPlaylists,
+                    isSearching: true
                 });
             }
             
@@ -583,6 +613,145 @@ function GlobalStoreContextProvider(props) {
             payload: null
         });
     }
+
+    store.searchPlaylists = function(query) {
+        if (!query.trim()) {
+            storeReducer({
+                type: GlobalStoreActionType.CLEAR_SEARCH,
+                payload: {}
+            });
+            return;
+        }
+        
+        console.log('Searching with query:', query);
+        console.log('Available playlists:', store.idNamePairs);
+        
+        // First, make sure we have full playlist data with songs
+        // If idNamePairs don't have songs, we need to fetch them
+        if (!store.idNamePairs || store.idNamePairs.length === 0) {
+            console.log('No playlists to search');
+            storeReducer({
+                type: GlobalStoreActionType.SET_SEARCH_QUERY,
+                payload: { query }
+            });
+            storeReducer({
+                type: GlobalStoreActionType.FILTER_PLAYLISTS,
+                payload: { filteredPlaylists: [] }
+            });
+            return;
+        }
+        
+        // Parse the query for prefix-based search
+        const terms = query.toLowerCase().trim().split(' ');
+        console.log('Parsed search terms:', terms);
+        
+        const filtered = store.idNamePairs.filter(playlist => {
+            // Check if playlist has songs (for debugging)
+            const hasSongs = playlist.songs && Array.isArray(playlist.songs);
+            console.log(`Playlist "${playlist.name}":`, {
+                name: playlist.name,
+                ownerEmail: playlist.ownerEmail,
+                hasSongs: hasSongs,
+                songCount: hasSongs ? playlist.songs.length : 0
+            });
+            
+            // Check each search term
+            return terms.every(term => {
+                // Handle prefix-based searches
+                if (term.startsWith('playlist:')) {
+                    const searchTerm = term.substring(9); // Remove 'playlist:'
+                    const playlistName = playlist.name || '';
+                    const matches = playlistName.toLowerCase().includes(searchTerm);
+                    console.log(`  Checking playlist name "${playlistName}" for "${searchTerm}": ${matches}`);
+                    return matches;
+                }
+                
+                if (term.startsWith('username:')) {
+                    const searchTerm = term.substring(9); // Remove 'username:'
+                    const ownerEmail = playlist.ownerEmail || '';
+                    const username = ownerEmail.split('@')[0] || '';
+                    const matches = username.toLowerCase().includes(searchTerm);
+                    console.log(`  Checking username "${username}" for "${searchTerm}": ${matches}`);
+                    return matches;
+                }
+                
+                if (term.startsWith('title:')) {
+                    const searchTerm = term.substring(6); // Remove 'title:'
+                    const songs = playlist.songs || [];
+                    const matches = songs.some(song => 
+                        song.title && song.title.toLowerCase().includes(searchTerm)
+                    );
+                    console.log(`  Checking song titles for "${searchTerm}": ${matches}`);
+                    return matches;
+                }
+                
+                if (term.startsWith('artist:')) {
+                    const searchTerm = term.substring(7); // Remove 'artist:'
+                    const songs = playlist.songs || [];
+                    const matches = songs.some(song => 
+                        song.artist && song.artist.toLowerCase().includes(searchTerm)
+                    );
+                    console.log(`  Checking song artists for "${searchTerm}": ${matches}`);
+                    return matches;
+                }
+                
+                if (term.startsWith('year:')) {
+                    const searchTerm = term.substring(5); // Remove 'year:'
+                    const songs = playlist.songs || [];
+                    const matches = songs.some(song => 
+                        String(song.year || '').includes(searchTerm)
+                    );
+                    console.log(`  Checking song years for "${searchTerm}": ${matches}`);
+                    return matches;
+                }
+                
+                // If no prefix, search all fields
+                const searchTerm = term;
+                const playlistName = playlist.name || '';
+                const ownerEmail = playlist.ownerEmail || '';
+                const username = ownerEmail.split('@')[0] || '';
+                const songs = playlist.songs || [];
+                
+                const matches = 
+                    playlistName.toLowerCase().includes(searchTerm) ||
+                    username.toLowerCase().includes(searchTerm) ||
+                    songs.some(song => 
+                        (song.title && song.title.toLowerCase().includes(searchTerm)) ||
+                        (song.artist && song.artist.toLowerCase().includes(searchTerm)) ||
+                        String(song.year || '').includes(searchTerm)
+                    );
+                
+                console.log(`  General search for "${searchTerm}": ${matches}`);
+                return matches;
+            });
+        });
+        
+        console.log(`Filtered ${store.idNamePairs.length} playlists to ${filtered.length} results`);
+        
+        storeReducer({
+            type: GlobalStoreActionType.SET_SEARCH_QUERY,
+            payload: { query }
+        });
+        
+        storeReducer({
+            type: GlobalStoreActionType.FILTER_PLAYLISTS,
+            payload: { filteredPlaylists: filtered }
+        });
+    };
+        
+      
+    
+    store.clearSearch = function() {
+        storeReducer({
+            type: GlobalStoreActionType.CLEAR_SEARCH,
+            payload: {}
+        });
+    };
+    
+    // Helper to get playlists to display (either filtered or all)
+    store.getDisplayPlaylists = function() {
+        return store.isSearching ? store.filteredPlaylists : store.idNamePairs;
+    };
 
     
 
