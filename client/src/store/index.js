@@ -396,17 +396,27 @@ function GlobalStoreContextProvider(props) {
     store.deleteList = function (id) {
         async function processDelete(id) {
             let response = await storeRequestSender.deletePlaylistById(id);
-            store.loadIdNamePairs();
+            
+            
             if (response.success) {
-                history.push("/");
+                // Just reload the playlists without navigating
+                await store.loadIdNamePairs();
+                console.log("Playlist deleted, staying on current page");
             }
         }
         processDelete(id);
     }
     store.deleteMarkedList = function() {
-        store.deleteList(store.listIdMarkedForDeletion);
+        // Store the ID before hiding modal
+        const listIdToDelete = store.listIdMarkedForDeletion;
+        
+        // Hide modal first
         store.hideModals();
         
+        // Then delete
+        if (listIdToDelete) {
+            store.deleteList(listIdToDelete);
+        }
     }
     // THIS FUNCTION SHOWS THE MODAL FOR PROMPTING THE USER
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST

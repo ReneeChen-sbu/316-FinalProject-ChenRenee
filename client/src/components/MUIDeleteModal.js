@@ -1,58 +1,175 @@
-import { useContext } from 'react'
+import { useContext } from 'react';
 import GlobalStoreContext from '../store';
-import * as React from 'react';
-import Box from '@mui/material/Box';
 import Modal from '@mui/material/Modal';
+import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import Grid from '@mui/material/Grid';
 import Divider from '@mui/material/Divider';
 
-const style1 = {
+const modalStyle = {
     position: 'absolute',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
-    width: 345,
-    height: 250,
-    backgroundSize: "contain",
-    backgroundImage: `url(https://i.insider.com/602ee9ced3ad27001837f2ac?})`,
-    border: '3px solid #000',
-    padding: '20px',
+    width: 400,
+    height: 350, 
+    bgcolor: '#c8e6c9', 
+    border: '2px solid #000000',
     boxShadow: 24,
+    p: 0, 
+    borderRadius: 0, 
+    display: 'flex',
+    flexDirection: 'column',
+};
+
+// Green color palette
+const greenColors = {
+    primary: '#4caf50', // Main green
+    dark: '#388e3c', // Darker green for hover
+    light: '#c8e6c9', // Light green
 };
 
 export default function MUIDeleteModal() {
     const { store } = useContext(GlobalStoreContext);
-    let name = "";
-    if (store.listMarkedForDeletion) {
-        name = store.listMarkedForDeletion.name;
+    
+    // Use the store's modal state
+    const isOpen = store.currentModal === 'DELETE_LIST';
+    const playlistToDelete = store.listMarkedForDeletion;
+    
+    function handleConfirmDelete() {
+        console.log("DELETE CONFIRMED for playlist:", playlistToDelete?.name);
+        
+        // Delete the marked playlist
+        if (playlistToDelete && store.listIdMarkedForDeletion) {
+            store.deleteMarkedList();
+        }
     }
-    function handleDeleteList(event) {
-        store.deleteMarkedList();
-    }
-    function handleCloseModal(event) {
+    
+    function handleCancelDelete() {
+        console.log("DELETE CANCELLED");
         store.hideModals();
     }
-
+    
+    // If no playlist to delete or modal not open, don't render
+    if (!isOpen || !playlistToDelete) {
+        return null;
+    }
+    
     return (
-        <Modal
-        open={store.listMarkedForDeletion !== null}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
+        <Modal 
+            open={isOpen}
+            onClose={handleCancelDelete}
+            aria-labelledby="delete-playlist-modal"
+            aria-describedby="confirm-playlist-deletion"
         >
-        <Box sx={style1}>
-            <Typography sx={{fontWeight: 'bold'}} id="modal-modal-title" variant="h4" component="h2">
-                Delete Playlist
-            </Typography>
-            <Divider sx={{borderBottomWidth: 5, p: '5px', transform: 'translate(-5.5%, 0%)', width:377}}/>
-            <Box sx={{background: "rgb(172,79,198,0.05)"}}>
-            <Typography id="modal-modal-description" variant="h6" sx={{color: "#301974" ,fontWeight: 'bold', mt: 1}}>
-                Are you sure you want to delete the <Typography display="inline" id="modal-modal-description" variant="h6" sx={{color: "#820747CF" ,fontWeight: 'bold', mt: 2, textDecoration: 'underline'}}>{name}</Typography> playlist?
-            </Typography>
+            <Box sx={modalStyle}>
+                {/* Title Section with Green Background and Separator Line */}
+                <Box sx={{
+                    backgroundColor: greenColors.dark,
+                    
+                    color: 'white',
+                    p: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'left',
+                    height: 20,
+                }}>
+                    <Typography 
+                        variant="h5" 
+                        component="h2" 
+                        sx={{ 
+                            fontWeight: 'bold',
+                            fontSize: '1.5rem',
+                            textAlign: 'center'
+                        }}
+                    >
+                        Delete playlist?
+                    </Typography>
+                </Box>
+                
+                {/* Separator Line */}
+                <Divider sx={{ borderColor: greenColors.primary, borderWidth: 1 }} />
+                
+                {/* Content Area */}
+                <Box sx={{ 
+                    flex: 1,
+                    p: 3,
+                    display: 'flex',
+                    border: '2px solid #000000',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                }}>
+                    {/* Message */}
+                    <Box>
+                        <Typography sx={{ 
+                            mb: 2,
+                            fontSize: '1.5rem',
+                            color: '#333',
+                            lineHeight: 1.5,
+                            textAlign: 'center'
+                        }}>
+                            Are you sure you want to delete the <strong>"{playlistToDelete.name}"</strong> playlist?
+                        </Typography>
+                        
+                        <Typography sx={{ 
+                            fontSize: '0.9rem',
+                            color: '#666',
+                            lineHeight: 1.5,
+                            textAlign: 'center'
+                        }}>
+                            Doing so means it will be permanently removed.
+                        </Typography>
+                    </Box>
+                    
+                    {/* Buttons */}
+                    <Grid container spacing={2} justifyContent="center">
+                        <Grid item>
+                            <Button
+                                variant="contained"
+                                onClick={handleConfirmDelete}
+                                sx={{
+                                    backgroundColor: '#333',
+                                    color: 'white',
+                                    textTransform: 'none',
+                                    fontSize: '0.9rem',
+                                    px: 3,
+                                    py: 1,
+                                    borderRadius: 3, 
+                                    minWidth: 120,
+                                    '&:hover': {
+                                        backgroundColor: greenColors.dark
+                                    }
+                                }}
+                            >
+                                Delete Playlist
+                            </Button>
+                        </Grid>
+                        <Grid item>
+                            <Button
+                                variant="contained"
+                                onClick={handleCancelDelete}
+                                sx={{
+                                    backgroundColor: '#333',
+                                    color: 'white',
+                                    textTransform: 'none',
+                                    fontSize: '0.9rem',
+                                    px: 3,
+                                    py: 1,
+                                    borderRadius: 3, 
+                                    minWidth: 120,
+                                    '&:hover': {
+                                        backgroundColor: greenColors.dark,
+                                   
+                                    }
+                                }}
+                            >
+                                Cancel
+                            </Button>
+                        </Grid>
+                    </Grid>
+                </Box>
             </Box>
-            <Button sx={{opacity: 0.7, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"60px", mr:"95px"}} variant="outlined" onClick={handleDeleteList}> Confirm </Button>
-            <Button sx={{opacity: 0.50, color: "#8932CC", backgroundColor: "#CBC3E3", fontSize: 13, fontWeight: 'bold', border: 2, p:"5px", mt:"60px", ml:"102px"}} variant="outlined" onClick={handleCloseModal}> Cancel </Button>
-        </Box>
-    </Modal>
+        </Modal>
     );
 }
