@@ -360,10 +360,19 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = async function () {
         try {
-            const response = await storeRequestSender.getPlaylistPairs();
+            let response;
+            
+            // Check if user is logged in or guest
+            if (auth.loggedIn && !auth.user.isGuest) {
+                // Logged in user - get their playlists
+                response = await storeRequestSender.getPlaylistPairs();
+            } else {
+                // Guest - get public playlists
+                response = await storeRequestSender.getGuestPlaylists();
+            }
+            
             if (response.success) {
-               console.log('idNamePairs from server:', response.idNamePairs);
-                
+                console.log('idNamePairs from server:', response.idNamePairs);
                 storeReducer({
                     type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
                     payload: response.idNamePairs
@@ -449,21 +458,37 @@ function GlobalStoreContextProvider(props) {
     // FUNCTIONS ARE setCurrentList, addMoveItemTransaction, addUpdateItemTransaction,
     // moveItem, updateItem, updateCurrentList, undo, and redo
     store.setCurrentList = function (id) {
+        console.log("DEBUG: setCurrentList called with id:", id);
+        
+        // Helper function to check if it's a valid MongoDB ObjectId
+        // WITHOUT using mongoose (since we're on the client)
+        const isValidObjectId = (id) => {
+            if (typeof id !== 'string') return false;
+            // MongoDB ObjectId is 24 hex characters
+            return /^[0-9a-fA-F]{24}$/.test(id);
+        };
+        
+        // Skip invalid IDs
+        if (id === "guest" || id === "guest@playlister.com" || !isValidObjectId(id)) {
+            console.log("DEBUG: Skipping setCurrentList - invalid ObjectId:", id);
+            return;
+        }
+        
         async function asyncSetCurrentList(id) {
-            let response = await storeRequestSender.getPlaylistById(id);
-            if (response.success) {
-                let playlist = response.playlist;
-
-                const listId = playlist._id ?? playlist.id;
-                response = await storeRequestSender.updatePlaylistById(listId, playlist);
-
+            try {
+                let response = await storeRequestSender.getPlaylistById(id);
                 if (response.success) {
+                    let playlist = response.playlist;
                     storeReducer({
                         type: GlobalStoreActionType.SET_CURRENT_LIST,
                         payload: playlist
                     });
-                    history.push("/playlist/" + listId);
+                    history.push("/playlist/" + id);
+                } else {
+                    console.log("DEBUG: Failed to get playlist:", response.errorMessage);
                 }
+            } catch (error) {
+                console.error("DEBUG: Error in setCurrentList:", error);
             }
         }
         asyncSetCurrentList(id);
@@ -741,11 +766,30 @@ function GlobalStoreContextProvider(props) {
             payload: {}
         });
     };
+
+    store.loadGuestPlaylists = async function () {
+        try {
+            const response = await storeRequestSender.getGuestPlaylists();
+            if (response.success) {
+                console.log('Guest idNamePairs from server:', response.idNamePairs);
+                storeReducer({
+                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+                    payload: response.idNamePairs
+                });
+            } else {
+                console.log('FAILED TO GET GUEST PLAYLISTS');
+            }
+        } catch (error) {
+            console.error('Error loading guest playlists:', error);
+        }
+    };
     
     // Helper to get playlists to display (either filtered or all)
     store.getDisplayPlaylists = function() {
         return store.isSearching ? store.filteredPlaylists : store.idNamePairs;
     };
+
+    
 
     
 

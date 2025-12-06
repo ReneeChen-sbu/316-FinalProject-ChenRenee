@@ -1,23 +1,42 @@
-const mongoose = require('mongoose')
-const Schema = mongoose.Schema
-/*
-    This is where we specify the format of the data we're going to put into
-    the database.
-    
-    @author McKilla Gorilla
-*/
-const playlistSchema = new Schema(
-    {
-        name: { type: String, required: true },
-        ownerEmail: { type: String, required: true },
-        songs: { type: [{
-            title: String,
-            artist: String,
-            year: Number,
-            youTubeId: String
-        }], required: true }
-    },
-    { timestamps: true },
-)
+const mongoose = require('mongoose');
 
-module.exports = mongoose.model('Playlist', playlistSchema)
+const PlaylistSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: true
+    },
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    songs: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Song'
+    }],
+    listenerCount: {  
+        type: Number,
+        default: 0
+    },
+    published: {
+        type: Boolean,
+        default: true
+    },
+    publishedDate: {
+        type: Date,
+        default: Date.now
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    }
+});
+
+// Compound index: No user can have two playlists with same name
+PlaylistSchema.index({ owner: 1, name: 1 }, { unique: true });
+
+module.exports = mongoose.model('Playlist', PlaylistSchema);

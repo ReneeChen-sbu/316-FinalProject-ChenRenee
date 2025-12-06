@@ -1,12 +1,12 @@
 const Playlist = require('../models/playlist-model')
 const User = require('../models/user-model');
-
-//changing so it uses db instead of mongoose models
+const Song = require('../models/song-model'); // ADD THIS
 const auth = require('../auth')
-const db = require('../db/mongodb/index')
+const mongoose = require('mongoose');
 
 createPlaylist = async (req, res) => {
     const body = req.body;
+    const userId = req.userId; // Use userId from auth middleware
     
     if (!body || !body.name) {
       return res.status(400).json({
@@ -15,28 +15,55 @@ createPlaylist = async (req, res) => {
       });
     }
   
+    // Get user to check name uniqueness
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        errorMessage: 'User not found'
+      });
+    }
+    
+    // Check if user already has a playlist with this name
+    const existingPlaylist = await Playlist.findOne({
+      owner: userId,
+      name: body.name
+    });
+    
+    if (existingPlaylist) {
+      return res.status(400).json({
+        success: false,
+        errorMessage: 'You already have a playlist with this name'
+      });
+    }
+  
     const playlist = new Playlist({
       name: body.name,
-      ownerEmail: req.userEmail,
+      owner: userId, // Use ObjectId, not email
       songs: body.songs || []
     });
   
     try {
       const savedPlaylist = await playlist.save();
+      // Populate before returning
+      const populatedPlaylist = await Playlist.findById(savedPlaylist._id)
+        .populate('owner', 'userName email')
+        .populate('songs');
+        
       return res.status(201).json({
         success: true,
-        playlist: savedPlaylist
+        playlist: populatedPlaylist
       });
     } catch (err) {
       return res.status(400).json({
         success: false,
-        errorMessage: 'Failed to create playlist'
+        errorMessage: 'Failed to create playlist: ' + err.message
       });
     }
-  };
-  
-  // Delete playlist by ID
-  deletePlaylist = async (req, res) => {
+};
+
+// Delete playlist by ID
+deletePlaylist = async (req, res) => {
     try {
       const playlist = await Playlist.findById(req.params.id);
       
@@ -47,7 +74,8 @@ createPlaylist = async (req, res) => {
         });
       }
       
-      if (playlist.ownerEmail !== req.userEmail) {
+      // Check if user owns this playlist
+      if (playlist.owner.toString() !== req.userId) {
         return res.status(403).json({
           success: false,
           errorMessage: 'Access denied'
@@ -62,12 +90,116 @@ createPlaylist = async (req, res) => {
         errorMessage: 'Failed to delete playlist'
       });
     }
-  };
-  
-  // Get playlist by ID
-  getPlaylistById = async (req, res) => {
+};
+
+// Get playlist by ID
+getPlaylistById = async (req, res) => {
     try {
-      const playlist = await Playlist.findById(req.params.id);
+        const playlistId = req.params.id;
+        
+        // Check if it's a valid MongoDB ObjectId
+        if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+            console.log(`Invalid playlist ID: ${playlistId}`);
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'Invalid playlist ID'
+            });
+        }
+        
+        const playlist = await Playlist.findById(playlistId)
+            .populate('owner', 'userName email')
+            .populate('songs');
+        
+        if (!playlist) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Playlist not found'
+            });
+        }
+        
+        return res.status(200).json({
+            success: true,
+            playlist: playlist
+        });
+    } catch (err) {
+        console.error('getPlaylistById error:', err);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Failed to fetch playlist'
+        });
+    }
+};
+
+// Get playlist pairs (id and name) for logged in user 
+getPlaylistPairs = async (req, res) => {
+    try {
+      const userId = req.userId;
+      
+      // Get user's playlists + public playlists
+      const playlists = await Playlist.find({
+        $or: [
+          { owner: userId },
+          { published: true }
+        ]
+      })
+      .populate('owner', 'userName email')
+      .populate('songs')
+      .sort({ updatedAt: -1 });
+  
+      const pairs = playlists.map(playlist => ({
+        _id: playlist._id,
+        name: playlist.name,
+        ownerName: playlist.owner.userName,
+        ownerEmail: playlist.owner.email,
+        songs: playlist.songs,
+        listenerCount: playlist.listenerCount || 0,
+        published: playlist.published || true
+      }));
+  
+      return res.status(200).json({
+        success: true,
+        idNamePairs: pairs
+      });
+    } catch (err) {
+      console.error('getPlaylistPairs error:', err);
+      return res.status(500).json({
+        success: false,
+        errorMessage: 'Failed to fetch playlists'
+      });
+    }
+};
+
+// Get all playlists for logged in user
+getPlaylists = async (req, res) => {
+    try {
+      const userId = req.userId;
+      
+      const playlists = await Playlist.find({ owner: userId })
+        .populate('owner', 'userName email')
+        .populate('songs')
+        .sort({ updatedAt: -1 });
+      
+      return res.status(200).json({
+        success: true,
+        playlists: playlists
+      });
+    } catch (err) {
+      console.error('getPlaylists error:', err);
+      return res.status(500).json({
+        success: false,
+        errorMessage: 'Failed to fetch playlists'
+      });
+    }
+};
+
+// Update playlist
+updatePlaylist = async (req, res) => {
+    try {
+      const playlistId = req.params.id;
+      const userId = req.userId;
+      const updateData = req.body;
+      
+      const playlist = await Playlist.findById(playlistId);
       
       if (!playlist) {
         return res.status(404).json({
@@ -76,109 +208,8 @@ createPlaylist = async (req, res) => {
         });
       }
       
-      if (playlist.ownerEmail !== req.userEmail) {
-        return res.status(403).json({
-          success: false,
-          errorMessage: 'Access denied'
-        });
-      }
-      
-      return res.status(200).json({
-        success: true,
-        playlist: playlist
-      });
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        errorMessage: 'Failed to fetch playlist'
-      });
-    }
-  };
-  
-  // Get playlist pairs (id and name) for logged in user 
-  getPlaylistPairs = async (req, res) => {
-    try {
-      const playlists = await Playlist.find({ ownerEmail: req.userEmail })
-        .sort({ updatedAt: -1 });
-  
-      const pairs = [];
-      for (const playlist of playlists) {
-        const user = await User.findOne({ email: playlist.ownerEmail });
-  
-        // Choose the display name
-        const displayName =
-          user?.userName ||
-          user?.firstName ||      // old data fallback
-          (user?.email ? user.email.split('@')[0] : 'Unknown User');
-  
-        const pair = {
-          _id: playlist._id,
-          name: playlist.name,
-          ownerEmail: playlist.ownerEmail,
-  
-          
-          userName: displayName,
-          ownerName: displayName,
-          ownerUserName: displayName,
-  
-          songs: playlist.songs,
-          listens: playlist.listens || 0,
-          likes: playlist.likes || 0,
-          dislikes: playlist.dislikes || 0,
-          published: playlist.published || false,
-          publishedDate: playlist.publishedDate
-        };
-  
-        console.log('PAIR SENT TO CLIENT:', pair); 
-        pairs.push(pair);
-      }
-  
-      return res.status(200).json({
-        success: true,
-        idNamePairs: pairs
-      });
-    } catch (err) {
-      console.error('getPlaylistPairs error:', err);
-      return res.status(400).json({
-        success: false,
-        errorMessage: 'Failed to fetch playlists'
-      });
-    }
-  };
-
-  // Get all playlists for logged in user
-  getPlaylists = async (req, res) => {
-    try {
-      const playlists = await Playlist.find({ ownerEmail: req.userEmail })
-        .sort({ updatedAt: -1 });
-      
-      return res.status(200).json({
-        success: true,
-        playlists: playlists
-      });
-    } catch (err) {
-      return res.status(400).json({
-        success: false,
-        errorMessage: 'Failed to fetch playlists'
-      });
-    }
-  };
-  
-  // Update playlist
-  updatePlaylist = async (req, res) => {
-    try {
-      const { playlist } = req.body;
-      
-      const existingPlaylist = await Playlist.findById(req.params.id);
-      
-      if (!existingPlaylist) {
-        return res.status(404).json({
-          success: false,
-          errorMessage: 'Playlist not found'
-        });
-      }
-      
-      if (existingPlaylist.ownerEmail !== req.userEmail) {
+      // Check ownership
+      if (playlist.owner.toString() !== userId) {
         return res.status(403).json({
           success: false,
           errorMessage: 'Access denied'
@@ -186,33 +217,63 @@ createPlaylist = async (req, res) => {
       }
       
       // Update fields
-      if (playlist.name !== undefined) existingPlaylist.name = playlist.name;
-      if (playlist.songs !== undefined) existingPlaylist.songs = playlist.songs;
-      if (playlist.listens !== undefined) existingPlaylist.listens = playlist.listens;
-      if (playlist.likes !== undefined) existingPlaylist.likes = playlist.likes;
-      if (playlist.dislikes !== undefined) existingPlaylist.dislikes = playlist.dislikes;
-      if (playlist.published !== undefined) existingPlaylist.published = playlist.published;
-      if (playlist.publishedDate !== undefined) existingPlaylist.publishedDate = playlist.publishedDate;
+      if (updateData.name !== undefined) {
+        // Check name uniqueness for this user
+        const existing = await Playlist.findOne({
+          owner: userId,
+          name: updateData.name,
+          _id: { $ne: playlistId }
+        });
+        
+        if (existing) {
+          return res.status(400).json({
+            success: false,
+            errorMessage: 'You already have a playlist with this name'
+          });
+        }
+        
+        playlist.name = updateData.name;
+      }
       
-      const updatedPlaylist = await existingPlaylist.save();
+      if (updateData.songs !== undefined) {
+        playlist.songs = updateData.songs;
+      }
+      
+      if (updateData.listenerCount !== undefined) {
+        playlist.listenerCount = updateData.listenerCount;
+      }
+      
+      if (updateData.published !== undefined) {
+        playlist.published = updateData.published;
+      }
+      
+      playlist.updatedAt = new Date();
+      
+      const updatedPlaylist = await playlist.save();
+      
+      // Populate before returning
+      const populatedPlaylist = await Playlist.findById(updatedPlaylist._id)
+        .populate('owner', 'userName email')
+        .populate('songs');
+      
       return res.status(200).json({
         success: true,
-        playlist: updatedPlaylist
+        playlist: populatedPlaylist
       });
     } catch (err) {
-      return res.status(400).json({
+      console.error('updatePlaylist error:', err);
+      return res.status(500).json({
         success: false,
-        errorMessage: 'Failed to update playlist'
+        errorMessage: 'Failed to update playlist: ' + err.message
       });
     }
-  };
-  
-  module.exports = {
+};
+
+module.exports = {
     createPlaylist,
     deletePlaylist,
     getPlaylistById,
     getPlaylistPairs,
     getPlaylists,
     updatePlaylist
-  };
-  
+};

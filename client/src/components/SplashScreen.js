@@ -7,7 +7,7 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import { Link } from 'react-router-dom';
 
-export default function SplashScreen() {
+export default function SplashScreen({ showFullScreen = true }) {
     const { auth } = useContext(AuthContext);
     const { store } = useContext(GlobalStoreContext);
     
@@ -19,7 +19,7 @@ export default function SplashScreen() {
         <Box 
             sx={{
                 width: '100%',
-                height: '100vh',
+                height: showFullScreen ? '100vh' : 'calc(100vh - 120px)', // Adjust height
                 backgroundColor: '#f8e0f0',
                 display: 'flex',
                 justifyContent: 'center',
@@ -32,33 +32,35 @@ export default function SplashScreen() {
                 sx={{
                     width: '100%',
                     maxWidth: 1000,
-                    maxHeight:1000,
+                    maxHeight: 1000,
                     backgroundColor: '#f8e0f0',
                     borderRadius: 2,
                     overflow: 'hidden',
                     boxShadow: 3,
                     justifyContent: 'center',
-                    alignItems:'center'
+                    alignItems: 'center'
                 }}
             >
-                {/* Header Bar: Magenta */}
-                <Box 
-                    sx={{
-                        backgroundColor: '#e020a0',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        px: 2,
-                        py: 1
-                    }}
-                >
-                    <IconButton sx={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%' }}>
-                        <HomeIcon />
-                    </IconButton>
-                    <IconButton sx={{ color: 'white' }}>
-                        <AccountCircleIcon fontSize="large" />
-                    </IconButton>
-                </Box>
+                {/* HEADER BAR - ONLY SHOW WHEN showFullScreen IS TRUE */}
+                {showFullScreen && (
+                    <Box 
+                        sx={{
+                            backgroundColor: '#e020a0',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            px: 2,
+                            py: 1
+                        }}
+                    >
+                        <IconButton sx={{ color: 'white', backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: '50%' }}>
+                            <HomeIcon />
+                        </IconButton>
+                        <IconButton sx={{ color: 'white' }}>
+                            <AccountCircleIcon fontSize="large" />
+                        </IconButton>
+                    </Box>
+                )}
 
                 {/* Content Area: Cream/Beige */}
                 <Box 

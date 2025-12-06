@@ -1,47 +1,86 @@
 const mongoose = require('mongoose');
-const User = require('../../models/user-model');
-const Playlist = require('../../models/playlist-model');
-const DatabaseManager = require('../manager');
 
-class MongoDatabaseManager extends DatabaseManager {
-  async connect() {
-    await mongoose.connect(process.env.DB_CONNECT, { useNewUrlParser: true, useUnifiedTopology: true });
-    console.log('Connected to MongoDB');
-  }
-
-  async getUserByEmail(email) { return await User.findOne({ email }); }
-  async createUser(data) { const user = new User(data); return await user.save(); }
-  async getPlaylistsByUser(email){
-    return await Playlist.find({ ownerEmail: email });
- }
- 
-  async createPlaylist(data) { const playlist = new Playlist(data); return await playlist.save(); }
-  async getPlaylistsByEmail(email) { return await Playlist.find({ ownerEmail: email }); }
-  async getPlaylistById(id) { return await Playlist.findById(id); }
-  async updatePlaylist(id, data) { return await Playlist.findByIdAndUpdate(id, data, { new: true }); }
-  async deletePlaylist(id) { return await Playlist.findByIdAndDelete(id); }
-  async getAllPlaylists() { return await Playlist.find({}); }
-  async getUserById(id) { return await User.findById(id); }
-  async updateUser(id, data) {
-    console.log('Updating user in database:', id, data);
-    
-    // Use findByIdAndUpdate to update and return the updated document
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { $set: data },
-      { new: true, runValidators: true } // new: true returns updated doc, runValidators validates the update
-    );
-    
-    if (!updatedUser) {
-      throw new Error(`User with id ${id} not found`);
+class MongoDatabaseManager {
+    constructor() {
+        this.uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/playlister';
     }
-    
-    console.log('User updated successfully:', updatedUser);
-    return updatedUser;
-  }
 
+    async connect() {
+        try {
+            await mongoose.connect(this.uri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+            console.log('Connected to MongoDB');
+        } catch (err) {
+            console.error('MongoDB connection error:', err);
+            process.exit(1);
+        }
+    }
 
+    // User methods
+    async getUserByEmail(email) {
+        return await mongoose.model('User').findOne({ email });
+    }
 
+    async getUserById(id) {
+        return await mongoose.model('User').findById(id);
+    }
+
+    async createUser(userData) {
+        const User = mongoose.model('User');
+        const user = new User(userData);
+        return await user.save();
+    }
+
+    // Playlist methods
+    async getPlaylistById(id) {
+        return await mongoose.model('Playlist')
+            .findById(id)
+            .populate('owner', 'userName email')
+            .populate('songs');
+    }
+
+    async getPlaylistsByOwner(ownerId) {
+        return await mongoose.model('Playlist')
+            .find({ owner: ownerId })
+            .populate('owner', 'userName email')
+            .populate('songs');
+    }
+
+    async createPlaylist(playlistData) {
+        const Playlist = mongoose.model('Playlist');
+        const playlist = new Playlist(playlistData);
+        return await playlist.save();
+    }
+
+    // Song methods
+    async getSongById(id) {
+        return await mongoose.model('Song').findById(id);
+    }
+
+    async findSongs(searchCriteria) {
+        const Song = mongoose.model('Song');
+        let query = {};
+        
+        if (searchCriteria.title) {
+            query.title = { $regex: searchCriteria.title, $options: 'i' };
+        }
+        if (searchCriteria.artist) {
+            query.artist = { $regex: searchCriteria.artist, $options: 'i' };
+        }
+        if (searchCriteria.year) {
+            query.year = searchCriteria.year;
+        }
+        
+        return await Song.find(query).populate('addedBy', 'userName');
+    }
+
+    async createSong(songData) {
+        const Song = mongoose.model('Song');
+        const song = new Song(songData);
+        return await song.save();
+    }
 }
 
 module.exports = MongoDatabaseManager;

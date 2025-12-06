@@ -1,82 +1,103 @@
-/*
-    This is our http api, which we use to send requests to
-    our back-end API. Note we`re using the Axios library
-    for doing this, which is an easy to use AJAX-based
-    library. We could (and maybe should) use Fetch, which
-    is a native (to browsers) standard, but Axios is easier
-    to use when sending JSON back and forth and it`s a Promise-
-    based API which helps a lot with asynchronous communication.
-    
-    @author McKilla Gorilla
-*/
+const baseURL = 'http://localhost:4000/api/playlists';
 
-
-// THESE ARE ALL THE REQUESTS WE`LL BE MAKING, ALL REQUESTS HAVE A
-// REQUEST METHOD (like get) AND PATH (like /top5list). SOME ALSO
-// REQUIRE AN id SO THAT THE SERVER KNOWS ON WHICH LIST TO DO ITS
-// WORK, AND SOME REQUIRE DATA, WHICH WE WE WILL FORMAT HERE, FOR WHEN
-// WE NEED TO PUT THINGS INTO THE DATABASE OR IF WE HAVE SOME
-// CUSTOM FILTERS FOR QUERIES
-// client/src/store/requests/index.js
-
-const baseURL = 'http://localhost:4000/api/store';
-
-//helper:
 async function fetchJSON(path, options = {}) {
-    const response = await fetch(`${baseURL}${path}`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        ...options
-    });
-    let data = null;
+    const fullURL = `${baseURL}${path}`;
+    console.log("DEBUG fetchJSON START:");
+    console.log("  Full URL:", fullURL);
+    console.log("  Path:", path);
+    console.log("  Options:", options);
+    
     try {
-        data = await response.json();
-     } catch (err) {
-        // server returned no body
-        data = {};
-     }
-     if (!response.ok) throw new Error(data.error || 'Request failed');
-     return data;
+        const response = await fetch(fullURL, {
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            ...options
+        });
+
+        console.log("DEBUG fetchJSON Response:");
+        console.log("  Status:", response.status);
+        console.log("  Status Text:", response.statusText);
+        console.log("  OK?", response.ok);
+        
+        let data = null;
+        try {
+            const text = await response.text();
+            console.log("  Raw response text:", text.substring(0, 500)); // First 500 chars
+            
+            if (text) {
+                data = JSON.parse(text);
+                console.log("  Parsed JSON:", data);
+            } else {
+                console.log("  Empty response body");
+                data = {};
+            }
+        } catch (jsonErr) {
+            console.error("  Failed to parse JSON:", jsonErr);
+            data = {};
+        }
+
+        if (!response.ok) {
+            const errorMsg = data.errorMessage || data.error || 'Request failed';
+            console.error("DEBUG fetchJSON Error:", errorMsg);
+            throw new Error(errorMsg);
+        }
+        
+        console.log("DEBUG fetchJSON Success");
+        return data;
+    } catch (error) {
+        console.error("DEBUG fetchJSON Catch block error:", error);
+        throw error;
+    }
 }
 
-//requests
-
+// CREATE playlist
 export function createPlaylist(newListName, newSongs, userEmail) {
-    return fetchJSON(`/playlist`, {
+    return fetchJSON('/', {
         method: 'POST',
         body: JSON.stringify({
             name: newListName,
-            songs: newSongs,
+            songs: newSongs || [],
             ownerEmail: userEmail
         })
     });
 }
 
+// DELETE playlist
 export function deletePlaylistById(id) {
-    return fetchJSON(`/playlist/${id}`, {
+    return fetchJSON(`/${id}`, {
         method: 'DELETE'
     });
 }
 
+// GET playlist by id
 export function getPlaylistById(id) {
-    return fetchJSON(`/playlist/${id}`, {
+    return fetchJSON(`/${id}`, {
         method: 'GET'
     });
 }
 
+// GET id–name pairs for logged-in user
 export function getPlaylistPairs() {
-    return fetchJSON(`/playlistpairs`, {
-        method: 'GET',
-        _id: "playlist_id",
-        name: "Playlist Name",
-        ownerEmail: "user@example.com",
-        songs: "",
-        listens: ""
+    return fetchJSON('/pairs', {
+        method: 'GET'
     });
 }
 
+// GET – guest/public playlists
+// In store/requests/index.js - getGuestPlaylists function
+export function getGuestPlaylists() {
+    console.log("DEBUG getGuestPlaylists called");
+    console.log("  Base URL:", baseURL);
+    console.log("  Full endpoint:", `${baseURL}/guest`);
+    
+    return fetchJSON('/guest', {
+        method: 'GET'
+    });
+}
+
+// UPDATE playlist
 export function updatePlaylistById(id, playlist) {
-    return fetchJSON(`/playlist/${id}`, {
+    return fetchJSON(`/${id}`, {
         method: 'PUT',
         body: JSON.stringify({ playlist })
     });
@@ -87,6 +108,8 @@ const apis = {
     deletePlaylistById,
     getPlaylistById,
     getPlaylistPairs,
+    getGuestPlaylists,
     updatePlaylistById
 };
+
 export default apis;

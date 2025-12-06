@@ -1,12 +1,12 @@
 import './App.css';
-import { React } from 'react'
+import { React, useContext } from 'react'  // ADD useContext import
 import { BrowserRouter, Route, Switch, useLocation } from 'react-router-dom'
 import { AuthContextProvider } from './auth';
 import { GlobalStoreContextProvider } from './store'
 
-// Import ONLY the components you actually use in App.js
+// Import components
 import AppBanner from './components/AppBanner';
-import HomeWrapper from './components/HomeWrapper';
+import HomeScreen from './components/HomeScreen';
 import LoginScreen from './components/LoginScreen';
 import RegisterScreen from './components/RegisterScreen';
 import Statusbar from './components/Statusbar';
@@ -14,16 +14,18 @@ import WorkspaceScreen from './components/WorkspaceScreen';
 import SplashScreen from './components/SplashScreen';
 import EditAccountScreen from './components/EditAccountScreen';
 
-// Create a wrapper component that uses useLocation
+
+import AuthContext from './auth';
+
 function AppContent() {
     const location = useLocation();
-    console.log('Current location:', location.pathname);
+    const { auth } = useContext(AuthContext);
     
     return (
         <Switch>
-            {/* Routes WITHOUT AppBanner and Statusbar */}
+            {/* Public routes */}
             <Route path="/" exact>
-                <SplashScreen />
+                <SplashScreen showFullScreen={true} />  
             </Route>
             <Route path="/login/" exact>
                 <LoginScreen />
@@ -31,20 +33,38 @@ function AppContent() {
             <Route path="/register/" exact>
                 <RegisterScreen />
             </Route>
-            <Route path="/edit-account" exact>
-                <EditAccountScreen />
+            
+            {/* Protected routes - require login */}
+            <Route path="/home" exact>
+                {auth.loggedIn ? (
+                    <>
+                        <AppBanner />
+                        <HomeScreen />
+                        <Statusbar />
+                    </>
+                ) : (
+                    <SplashScreen showFullScreen={false} />  
+                )}
             </Route>
             
-            {/* Routes WITH AppBanner and Statusbar */}
-            <Route path="/home" exact>
-                <AppBanner />
-                <HomeWrapper />
-                <Statusbar />
+            <Route path="/edit-account" exact>
+                {auth.loggedIn ? (
+                    <EditAccountScreen />
+                ) : (
+                    <SplashScreen showFullScreen={false} /> 
+                )}
             </Route>
+            
             <Route path="/playlist/:id" exact>
-                <AppBanner />
-                <WorkspaceScreen />
-                <Statusbar />
+                {auth.loggedIn ? (
+                    <>
+                        <AppBanner />
+                        <WorkspaceScreen />
+                        <Statusbar />
+                    </>
+                ) : (
+                    <SplashScreen showFullScreen={false} /> 
+                )}
             </Route>
         </Switch>
     );
@@ -62,4 +82,4 @@ const App = () => {
     )
 }
 
-export default App
+export default App;

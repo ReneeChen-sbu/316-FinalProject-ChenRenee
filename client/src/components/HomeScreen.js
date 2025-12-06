@@ -24,7 +24,7 @@ export default function HomeScreen() {
     const [sortBy, setSortBy] = useState('listeners-hi-lo');
 
     useEffect(() => {
-        store.loadIdNamePairs();
+        store.loadGuestPlaylists();
     }, []);
 
     const handleSearch = () => {
