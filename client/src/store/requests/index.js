@@ -96,14 +96,21 @@ export function getGuestPlaylists() {
 }
 
 // UPDATE playlist
-// UPDATE playlist - FIXED
 export function updatePlaylistById(id, playlist) {
     console.log("DEBUG: Updating playlist with ID:", id);
-    console.log("DEBUG: Playlist data:", playlist);
+    console.log("DEBUG: Original playlist data:", playlist);
+    
+    // Make sure songs is a proper array, not a string
+    const playlistToSend = {
+        ...playlist,
+        songs: Array.isArray(playlist.songs) ? playlist.songs : JSON.parse(playlist.songs || '[]')
+    };
+    
+    console.log("DEBUG: Sending playlist data:", playlistToSend);
     
     return fetchJSON(`/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(playlist)  // REMOVE the extra wrapper
+        body: JSON.stringify(playlistToSend)
     });
 }
 

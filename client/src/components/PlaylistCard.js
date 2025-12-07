@@ -25,6 +25,7 @@ export default function PlaylistCard({ idNamePair }) {
 
   const handleEdit = (e) => {
     e.stopPropagation();
+    console.log('Edit clicked for playlist:', idNamePair._id);
     store.setCurrentList(idNamePair._id, { navigate: false });
     setEditOpen(true);
   };

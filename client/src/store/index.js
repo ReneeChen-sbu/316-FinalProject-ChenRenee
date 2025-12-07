@@ -481,11 +481,20 @@ function GlobalStoreContextProvider(props) {
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST
 
     store.showEditSongModal = (songIndex, songToEdit) => {
+        console.log("DEBUG: showEditSongModal called");
+        console.log("Song index:", songIndex);
+        console.log("Song to edit:", songToEdit);
+        console.log("Current modal before:", store.currentModal);
+        
         storeReducer({
             type: GlobalStoreActionType.EDIT_SONG,
             payload: {currentSongIndex: songIndex, currentSong: songToEdit}
-        });        
-    }
+        });
+        
+        console.log("Current modal after:", store.currentModal);
+        console.log("Should be EDIT_SONG:", store.currentModal === CurrentModal.EDIT_SONG);
+    };
+    
     store.hideModals = () => {
         auth.errorMessage = null;
         storeReducer({
@@ -555,11 +564,21 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION CREATES A NEW SONG IN THE CURRENT LIST
     // USING THE PROVIDED DATA AND PUTS THIS SONG AT INDEX
     store.createSong = function(index, song) {
-        let list = store.currentList;      
+        let list = store.currentList;
+        
+        // Make sure songs is an array
+        if (!Array.isArray(list.songs)) {
+            console.error("songs is not an array! Current value:", list.songs);
+            list.songs = [];
+        }
+        
         list.songs.splice(index, 0, song);
+        console.log("After adding song, songs array:", list.songs);
+        
         // NOW MAKE IT OFFICIAL
         store.updateCurrentList();
     }
+
     // THIS FUNCTION MOVES A SONG IN THE CURRENT LIST FROM
     // start TO end AND ADJUSTS ALL OTHER ITEMS ACCORDINGLY
     store.moveSong = function(start, end) {

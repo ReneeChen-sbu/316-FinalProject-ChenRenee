@@ -167,41 +167,44 @@ const getPlaylistById = async (req, res) => {
 // GET id-name pairs for logged-in user
 const getPlaylistPairs = async (req, res) => {
   try {
-    const userId = req.userId;
+      const userId = req.userId;
 
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        errorMessage: 'Not logged in'
-      });
-    }
+      if (!userId) {
+          return res.status(401).json({
+              success: false,
+              errorMessage: 'Not logged in'
+          });
+      }
 
-    //only this user's playlists here
-    const playlists = await Playlist.find({ owner: userId })
+      // ONLY get playlists owned by this user
+      const playlists = await Playlist.find({ 
+          owner: userId,  // Only this user's playlists
+          published: true  // Only published playlists
+      })
       .populate('owner', 'userName email')
       .populate('songs')
       .sort({ updatedAt: -1 });
 
-    const pairs = playlists.map(playlist => ({
-      _id: playlist._id,
-      name: playlist.name,
-      ownerName: playlist.owner.userName,
-      ownerEmail: playlist.owner.email,
-      songs: playlist.songs,
-      listenerCount: playlist.listenerCount || 0,
-      published: playlist.published ?? true
-    }));
+      const pairs = playlists.map(playlist => ({
+          _id: playlist._id,
+          name: playlist.name,
+          ownerName: playlist.owner.userName,
+          ownerEmail: playlist.owner.email,
+          songs: playlist.songs,
+          listenerCount: playlist.listenerCount || 0,
+          published: playlist.published ?? true
+      }));
 
-    return res.status(200).json({
-      success: true,
-      idNamePairs: pairs
-    });
+      return res.status(200).json({
+          success: true,
+          idNamePairs: pairs
+      });
   } catch (err) {
-    console.error('getPlaylistPairs error:', err);
-    return res.status(500).json({
-      success: false,
-      errorMessage: 'Failed to fetch playlists'
-    });
+      console.error('getPlaylistPairs error:', err);
+      return res.status(500).json({
+          success: false,
+          errorMessage: 'Failed to fetch playlists'
+      });
   }
 };
 
@@ -231,9 +234,24 @@ const getPlaylists = async (req, res) => {
 // UPDATE playlist
 const updatePlaylist = async (req, res) => {
   try {
+    console.log("SERVER: updatePlaylist called");
+    console.log("Body received:", JSON.stringify(req.body, null, 2));
     const userId = req.userId;
     const playlistId = req.params.id;
     const updateData = req.body;
+
+    if (updateData.songs && typeof updateData.songs === 'string') {
+      try {
+        updateData.songs = JSON.parse(updateData.songs);
+        console.log("Parsed songs from string to array");
+      } catch (parseErr) {
+        console.error("Failed to parse songs:", parseErr);
+        return res.status(400).json({
+          success: false,
+          errorMessage: 'Invalid songs format'
+        });
+      }
+    }
 
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
       return res.status(400).json({

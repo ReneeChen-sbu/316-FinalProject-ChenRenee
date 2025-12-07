@@ -17,14 +17,9 @@ import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 
 import GlobalStoreContext from '../store';
+import MUIEditSongModal from './MUIEditSongModal';  
 
-/**
- * Green "Edit Playlist" modal.
- * It:
- *  - edits playlist title using store.changeListName
- *  - manipulates songs via store transactions
- *  - opens the global MUIEditSongModal via store.showEditSongModal
- */
+
 export default function EditPlaylistModal({ open, onClose }) {
   const { store } = useContext(GlobalStoreContext);
   const playlist = store.currentList;
@@ -44,7 +39,7 @@ export default function EditPlaylistModal({ open, onClose }) {
 
   const songs = playlist.songs || [];
 
-  // ---------- Playlist title handlers ----------
+  //Playlist title handlers
 
   const saveTitleIfNeeded = () => {
     if (!playlist) return;
@@ -83,19 +78,32 @@ export default function EditPlaylistModal({ open, onClose }) {
     if (onClose) onClose();
   };
 
-  // ---------- Song handlers ----------
+  // Song handlers 
 
   const handleAddSong = () => {
+    console.log("Current songs before adding:", playlist.songs);
+    console.log("Type of songs:", typeof playlist.songs);
+    
     if (!store.canAddNewSong()) return;
     store.addNewSong();
-  };
+};
 
-  const handleEditSong = (index) => {
+const handleEditSong = (index) => {
+    console.log("Edit song clicked at index:", index);
     const song = songs[index];
-    if (!song) return;
-    // This sets store.currentModal = EDIT_SONG
+    if (!song) {
+        console.error("No song found at index:", index);
+        return;
+    }
+    
+    console.log("Song to edit:", song);
+    
+    // This should trigger the global edit song modal
     store.showEditSongModal(index, song);
-  };
+    
+    // For debugging, check if modal opened
+    console.log("After showEditSongModal, isEditSongModalOpen:", store.isEditSongModalOpen());
+};
 
   const handleDuplicateSong = (index) => {
     const song = songs[index];
@@ -123,7 +131,7 @@ export default function EditPlaylistModal({ open, onClose }) {
     if (store.canRedo()) store.redo();
   };
 
-  // ---------- UI ----------
+  // UI
 
   return (
     <Box
@@ -422,10 +430,11 @@ export default function EditPlaylistModal({ open, onClose }) {
               '&:hover': { backgroundColor: '#1b5e20' },
             }}
           >
-            Save &amp; Close
+            Close
           </Button>
         </Box>
       </Box>
+      {store.isEditSongModalOpen() && <MUIEditSongModal />}
     </Box>
   );
 }

@@ -5,6 +5,12 @@ import GlobalStoreContext from '../store';
 export default function MUIEditSongModal() {
   const { store } = useContext(GlobalStoreContext);
 
+
+  console.log("MUIEditSongModal rendering");
+  console.log("isEditSongModalOpen:", store.isEditSongModalOpen());
+  console.log("currentSong:", store.currentSong);
+  console.log("currentSongIndex:", store.currentSongIndex);
+
   const isOpen = store.isEditSongModalOpen();
   const currentSong = store.currentSong;
   const currentIndex = store.currentSongIndex;
@@ -23,7 +29,12 @@ export default function MUIEditSongModal() {
     }
   }, [currentSong, isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log("MUIEditSongModal: Not open, returning null");
+    return null;
+  }
+
+  console.log("MUIEditSongModal: Rendering modal");
 
   const handleConfirm = () => {
     const newSongData = {
