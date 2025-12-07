@@ -176,6 +176,7 @@ const getPlaylistPairs = async (req, res) => {
       });
     }
 
+    //only this user's playlists here
     const playlists = await Playlist.find({ owner: userId })
       .populate('owner', 'userName email')
       .populate('songs')
@@ -184,9 +185,9 @@ const getPlaylistPairs = async (req, res) => {
     const pairs = playlists.map(playlist => ({
       _id: playlist._id,
       name: playlist.name,
-      ownerName: playlist.owner?.userName || 'Unknown',
-      ownerEmail: playlist.owner?.email || 'unknown@example.com',
-      songs: playlist.songs || [],
+      ownerName: playlist.owner.userName,
+      ownerEmail: playlist.owner.email,
+      songs: playlist.songs,
       listenerCount: playlist.listenerCount || 0,
       published: playlist.published ?? true
     }));
@@ -203,7 +204,6 @@ const getPlaylistPairs = async (req, res) => {
     });
   }
 };
-
 
 
 // GET all playlists for logged-in user (full docs, not pairs)
@@ -314,17 +314,12 @@ const updatePlaylist = async (req, res) => {
 // GUEST / public library – get all published playlists
 const getGuestPlaylists = async (req, res) => {
   try {
-    console.log('🎵 SERVER: getGuestPlaylists called');
-    
-    // Make sure this doesn't have any playlist ID validation
-    // It should just return all playlists, not validate a specific ID
-    
+    console.log('SERVER: getGuestPlaylists called');
+
     const playlists = await Playlist.find({ published: true })
       .populate('owner', 'userName email')
       .populate('songs')
       .sort({ updatedAt: -1 });
-
-    console.log('🎵 SERVER: Found', playlists.length, 'playlists');
 
     const pairs = playlists.map(playlist => ({
       _id: playlist._id,
@@ -333,24 +328,22 @@ const getGuestPlaylists = async (req, res) => {
       ownerEmail: playlist.owner?.email || 'unknown@example.com',
       songs: playlist.songs || [],
       listenerCount: playlist.listenerCount || 0,
-      published: playlist.published || true
+      published: playlist.published ?? true
     }));
 
-    console.log('🎵 SERVER: Returning', pairs.length, 'playlists to client');
-    
     return res.status(200).json({
       success: true,
       idNamePairs: pairs
     });
-    
   } catch (err) {
-    console.error('🎵 SERVER: getGuestPlaylists error:', err);
+    console.error('SERVER: getGuestPlaylists error:', err);
     return res.status(500).json({
       success: false,
       errorMessage: 'Server error: ' + err.message
     });
   }
 };
+
 
 module.exports = {
   createPlaylist,

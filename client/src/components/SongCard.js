@@ -1,10 +1,19 @@
-import { useContext } from 'react'
+import { useContext, useState, useEffect } from 'react'
 import { GlobalStoreContext } from '../store'
 import Button from '@mui/material/Button';
 
+
 function SongCard(props) {
     const { store } = useContext(GlobalStoreContext);
-    const { song, index } = props;
+    const { index, song } = props;
+    
+    // Local state to track song data
+    const [currentSong, setCurrentSong] = useState(song);
+    
+    // Update when the song prop changes
+    useEffect(() => {
+        setCurrentSong(song);
+    }, [song]);
 
     function handleDragStart(event) {
         event.dataTransfer.setData("song", index);

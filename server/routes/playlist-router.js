@@ -4,17 +4,16 @@ const { requireAuth } = require('../auth');
 
 const router = express.Router();
 
-/** GUEST LIBRARY – NO AUTH */
+//GUEST LIBRARY (no auth)
 router.get('/guest', PlaylistController.getGuestPlaylists);
 
-/** LOGGED-IN ROUTES (no :id yet) */
+//LOGGED-IN ROUTES 
 router.get('/pairs', requireAuth, PlaylistController.getPlaylistPairs);
 router.get('/', requireAuth, PlaylistController.getPlaylists);
-router.post('/', requireAuth, PlaylistController.createPlaylist);
-
-/** ROUTES WITH :id – PUT THESE LAST */
 router.get('/:id', requireAuth, PlaylistController.getPlaylistById);
+router.post('/', requireAuth, PlaylistController.createPlaylist);
 router.put('/:id', requireAuth, PlaylistController.updatePlaylist);
 router.delete('/:id', requireAuth, PlaylistController.deletePlaylist);
 
 module.exports = router;
+

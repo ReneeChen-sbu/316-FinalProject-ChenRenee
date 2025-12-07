@@ -1,274 +1,416 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import {
-  Dialog,
   Box,
-  Typography,
-  IconButton,
   Button,
+  IconButton,
   TextField,
+  Typography,
+  InputAdornment,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+
 import CloseIcon from '@mui/icons-material/Close';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import LibraryMusicIcon from '@mui/icons-material/LibraryMusic';
+import EditIcon from '@mui/icons-material/Edit';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import ClearIcon from '@mui/icons-material/Clear';
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 
 import GlobalStoreContext from '../store';
 
-export default function EditPlaylistModal({ open, onClose, playlistId }) {
+/**
+ * Green "Edit Playlist" modal.
+ * It:
+ *  - edits playlist title using store.changeListName
+ *  - manipulates songs via store transactions
+ *  - opens the global MUIEditSongModal via store.showEditSongModal
+ */
+export default function EditPlaylistModal({ open, onClose }) {
   const { store } = useContext(GlobalStoreContext);
-  const [nameInput, setNameInput] = useState('');
-
-  // When modal opens, make sure the store has this playlist loaded
-  useEffect(() => {
-    if (open && playlistId) {
-      store.setCurrentList(playlistId, { navigate: false }); 
-    }
-  }, [open, playlistId, store]);
-  
   const playlist = store.currentList;
-  const songs = playlist?.songs || [];
 
-  // Sync local name field whenever currentList changes
+  // Only show when parent says `open` and there is a currentList
+  const isOpen = open && !!playlist;
+
+  const [playlistName, setPlaylistName] = useState('');
+
   useEffect(() => {
-    if (playlist?.name) {
-      setNameInput(playlist.name);
+    if (playlist && isOpen) {
+      setPlaylistName(playlist.name || '');
     }
-  }, [playlist]);
+  }, [playlist, isOpen]);
 
-  const handleChangeName = (e) => {
-    setNameInput(e.target.value);
+  if (!isOpen || !playlist) return null;
+
+  const songs = playlist.songs || [];
+
+  // ---------- Playlist title handlers ----------
+
+  const saveTitleIfNeeded = () => {
+    if (!playlist) return;
+    const trimmed = playlistName.trim();
+    if (!trimmed || trimmed === playlist.name) return;
+
+    // Use existing helper that talks to the backend
+    const id = playlist._id ?? playlist.id;
+    store.changeListName(id, trimmed);
   };
 
-  const handleNameBlur = () => {
-    if (!playlist || !nameInput.trim()) return;
-    if (nameInput.trim() === playlist.name) return;
-    store.changeListName(playlist._id ?? playlist.id, nameInput.trim());
+  const handleTitleChange = (e) => {
+    setPlaylistName(e.target.value);
   };
+
+  const handleTitleBlur = () => {
+    saveTitleIfNeeded();
+  };
+
+  const handleTitleSave = () => {
+    const trimmed = playlistName.trim();
+    if (!trimmed || trimmed === playlist.name) return;
+  
+    const listId = playlist._id || playlist.id;
+    store.changeListName(listId, trimmed);
+  };
+  
+
+  const handleTitleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveTitleIfNeeded();
+      e.target.blur();
+    }
+  };
+
+  const handleClearTitle = () => {
+    setPlaylistName('');
+  };
+
+  const handleClose = () => {
+    // Save name one last time, then let parent close the modal
+    saveTitleIfNeeded();
+    if (onClose) onClose();
+  };
+
+  // ---------- Song handlers ----------
 
   const handleAddSong = () => {
-    if (!playlist) return;
-    store.addNewSong(); // uses transaction + updateCurrentList in your store
+    if (!store.canAddNewSong()) return;
+    store.addNewSong();
   };
 
   const handleEditSong = (index) => {
-    if (!playlist) return;
-    const song = playlist.songs[index];
-    store.showEditSongModal(index, song); // re-use existing edit-song modal
+    const song = songs[index];
+    if (!song) return;
+    // This sets store.currentModal = EDIT_SONG
+    store.showEditSongModal(index, song);
   };
 
-  const handleDeleteSong = (index) => {
-    if (!playlist) return;
-    const song = playlist.songs[index];
+  const handleDuplicateSong = (index) => {
+    const song = songs[index];
+    if (!song) return;
+    store.addCreateSongTransaction(
+      index + 1,
+      song.title,
+      song.artist,
+      song.year,
+      song.youTubeId
+    );
+  };
+
+  const handleRemoveSong = (index) => {
+    const song = songs[index];
+    if (!song) return;
     store.addRemoveSongTransaction(song, index);
   };
 
-  const handleUndo = () => store.undo();
-  const handleRedo = () => store.redo();
-
-  const handleClose = () => {
-    store.closeCurrentList();
-    onClose();
+  const handleUndo = () => {
+    if (store.canUndo()) store.undo();
   };
 
+  const handleRedo = () => {
+    if (store.canRedo()) store.redo();
+  };
+
+  // ---------- UI ----------
+
   return (
-    <Dialog
-      open={open}
-      onClose={handleClose}
-      maxWidth="lg"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          overflow: 'hidden',
-          backgroundColor: '#f5f5dc', // cream
-        },
+    <Box
+      sx={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1500,
       }}
     >
-      {/* Header bar */}
       <Box
         sx={{
-          backgroundColor: '#4caf50',
-          color: 'white',
-          px: 3,
-          py: 1.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          Edit Playlist
-        </Typography>
-        <IconButton onClick={handleClose} sx={{ color: 'white' }}>
-          <CloseIcon />
-        </IconButton>
-      </Box>
-
-      {/* Body */}
-      <Box
-        sx={{
-          backgroundColor: '#c8f7c5',
-          p: 2,
-          minHeight: 420,
+          width: '80%',
+          maxWidth: 900,
+          height: '80%',
+          backgroundColor: '#b2ffb2',
+          borderRadius: 2,
+          boxShadow: 6,
           display: 'flex',
           flexDirection: 'column',
+          border: '4px solid #2e7d32',
         }}
       >
-        {/* Top: title bar and add-song button */}
+        {/* Top green bar */}
         <Box
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            mb: 2,
-          }}
-        >
-          <TextField
-            fullWidth
-            variant="outlined"
-            value={nameInput}
-            onChange={handleChangeName}
-            onBlur={handleNameBlur}
-            placeholder="Playlist name"
-            sx={{
-              backgroundColor: '#f5f5f5',
-              '& .MuiOutlinedInput-root': {
-                borderRadius: 2,
-              },
-            }}
-          />
-
-          <Button
-            onClick={handleAddSong}
-            sx={{
-              ml: 2,
-              backgroundColor: '#7e57c2',
-              color: 'white',
-              borderRadius: 999,
-              px: 2.5,
-              textTransform: 'none',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 0.5,
-              '&:hover': { backgroundColor: '#5e35b1' },
-            }}
-          >
-            <AddIcon fontSize="small" />
-            <MusicNoteIcon fontSize="small" />
-          </Button>
-        </Box>
-
-        {/* Song list */}
-        <Box
-          sx={{
-            flex: 1,
-            backgroundColor: '#fdf5d5',
-            borderRadius: 2,
-            p: 2,
-            boxShadow: 1,
-            overflowY: 'auto',
-          }}
-        >
-          {!playlist && (
-            <Typography color="text.secondary">
-              Loading playlist...
-            </Typography>
-          )}
-
-          {playlist && songs.length === 0 && (
-            <Typography color="text.secondary" fontStyle="italic">
-              No songs in this playlist yet.
-            </Typography>
-          )}
-
-          {playlist &&
-            songs.map((song, index) => (
-              <Box
-                key={song._id || index}
-                sx={{
-                  mb: 1.5,
-                  p: 1.2,
-                  borderRadius: 1.5,
-                  backgroundColor: '#fffbdd',
-                  border: '1px solid #e0e0a0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Typography sx={{ fontSize: 15, fontWeight: 600 }}>
-                  {index + 1}. {song.title} by {song.artist} ({song.year})
-                </Typography>
-
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <IconButton
-                    size="small"
-                    onClick={() => handleEditSong(index)}
-                    sx={{
-                      backgroundColor: '#fff',
-                      borderRadius: 1,
-                      '&:hover': { backgroundColor: '#f0f0f0' },
-                    }}
-                  >
-                    <EditIcon fontSize="small" />
-                  </IconButton>
-
-                  {/* You can later replace this with a “move” UI / drag handle;
-                      right now we just keep the icon slots similar to screenshot */}
-                  {/* <IconButton ...> move </IconButton> */}
-
-                  <IconButton
-                    size="small"
-                    onClick={() => handleDeleteSong(index)}
-                    sx={{
-                      backgroundColor: '#fff',
-                      borderRadius: 1,
-                      '&:hover': { backgroundColor: '#ffe6e6' },
-                    }}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-              </Box>
-            ))}
-        </Box>
-
-        {/* Bottom bar: Undo / Redo / Close */}
-        <Box
-          sx={{
-            mt: 2,
+            backgroundColor: '#2e7d32',
+            color: 'white',
+            px: 2,
+            py: 1,
+            fontWeight: 700,
+            fontSize: 18,
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
+          <span>Edit Playlist</span>
+          <Typography variant="caption" sx={{ color: '#e0f7fa' }}>
+            {songs.length} song{songs.length !== 1 ? 's' : ''}
+          </Typography>
+        </Box>
+
+        {/* Title row */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 2,
+            px: 3,
+            py: 2,
+          }}
+        >
+          <TextField
+            fullWidth
+            variant="outlined"
+            value={playlistName}
+            onChange={handleTitleChange}
+            onBlur={handleTitleBlur}
+            onKeyDown={handleTitleKeyDown}
+            InputProps={{
+              sx: {
+                backgroundColor: '#f5f5f5',
+                fontSize: 22,
+                fontWeight: 700,
+              },
+              endAdornment: playlistName && (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={handleClearTitle}
+                    edge="end"
+                    size="small"
+                    sx={{ mr: -1 }}
+                  >
+                    <ClearIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            placeholder="Enter playlist name..."
+          />
+
+          {/* Top-right buttons */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              onClick={handleAddSong}
+              sx={{
+                borderRadius: '999px',
+                px: 3,
+                py: 1,
+                backgroundColor: '#7e57c2',
+                color: 'white',
+                textTransform: 'none',
+                fontWeight: 600,
+                '&:hover': { backgroundColor: '#673ab7' },
+              }}
+              startIcon={<LibraryMusicIcon />}
+            >
+              Add Song
+            </Button>
+
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                backgroundColor: '#eeeeee',
+                '&:hover': { backgroundColor: '#e0e0e0' },
+              }}
+              title="Close Modal"
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </Box>
+
+        {/* Songs list */}
+        <Box
+          sx={{
+            flex: 1,
+            mx: 3,
+            mb: 2,
+            p: 2,
+            borderRadius: 2,
+            backgroundColor: 'white',
+            overflowY: 'auto',
+            minHeight: 0,
+          }}
+        >
+          {songs.map((song, index) => (
+            <Box
+              key={song._id || `song-${index}`}
+              sx={{
+                mb: 1.5,
+                px: 2,
+                py: 1.5,
+                borderRadius: 2,
+                backgroundColor: '#fff9c4',
+                border: '1px solid #e0e0a0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                '&:hover': {
+                  backgroundColor: '#fff59d',
+                },
+              }}
+            >
+              {/* Left: song text */}
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: 16,
+                    fontWeight: 600,
+                    color: '#333',
+                    mb: 0.5,
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {index + 1}. {song.title || 'Untitled Song'}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    color: '#666',
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {song.artist || 'Unknown Artist'}
+                  {song.year ? ` (${song.year})` : ''}
+                  {song.youTubeId && ` • YouTube: ${song.youTubeId}`}
+                </Typography>
+              </Box>
+
+              {/* Right: icons (edit, copy, X) */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
+                <IconButton
+                  size="small"
+                  onClick={() => handleEditSong(index)}
+                  sx={{
+                    color: '#424242',
+                    '&:hover': { backgroundColor: '#e3f2fd' },
+                  }}
+                  title="Edit Song"
+                >
+                  <EditIcon />
+                </IconButton>
+
+                <IconButton
+                  size="small"
+                  onClick={() => handleDuplicateSong(index)}
+                  sx={{
+                    color: '#424242',
+                    '&:hover': { backgroundColor: '#f3e5f5' },
+                  }}
+                  title="Duplicate Song"
+                >
+                  <ContentCopyIcon />
+                </IconButton>
+
+                <IconButton
+                  size="small"
+                  onClick={() => handleRemoveSong(index)}
+                  sx={{
+                    color: '#e53935',
+                    '&:hover': { backgroundColor: '#ffebee' },
+                  }}
+                  title="Delete Song"
+                >
+                  <ClearIcon />
+                </IconButton>
+              </Box>
+            </Box>
+          ))}
+
+          {songs.length === 0 && (
+            <Box
+              sx={{
+                textAlign: 'center',
+                py: 8,
+                color: '#777',
+                fontStyle: 'italic',
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 1, color: '#666' }}>
+                No songs yet
+              </Typography>
+              <Typography variant="body1">
+                Click &quot;Add Song&quot; to add your first song!
+              </Typography>
+            </Box>
+          )}
+        </Box>
+
+        {/* Bottom buttons: Undo / Redo / Close */}
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            px: 3,
+            pb: 2,
+            backgroundColor: '#b2ffb2',
+            borderTop: '2px solid #81c784',
+          }}
+        >
           <Box sx={{ display: 'flex', gap: 2 }}>
             <Button
               onClick={handleUndo}
+              disabled={!store.canUndo()}
               startIcon={<UndoIcon />}
               sx={{
-                backgroundColor: '#7e57c2',
+                borderRadius: '999px',
+                backgroundColor: '#673ab7',
                 color: 'white',
-                borderRadius: 20,
-                px: 3,
                 textTransform: 'none',
+                '&:disabled': {
+                  backgroundColor: '#b39ddb',
+                  color: '#eeeeee',
+                },
                 '&:hover': { backgroundColor: '#5e35b1' },
               }}
             >
               Undo
             </Button>
+
             <Button
               onClick={handleRedo}
+              disabled={!store.canRedo()}
               startIcon={<RedoIcon />}
               sx={{
-                backgroundColor: '#7e57c2',
+                borderRadius: '999px',
+                backgroundColor: '#673ab7',
                 color: 'white',
-                borderRadius: 20,
-                px: 3,
                 textTransform: 'none',
+                '&:disabled': {
+                  backgroundColor: '#b39ddb',
+                  color: '#eeeeee',
+                },
                 '&:hover': { backgroundColor: '#5e35b1' },
               }}
             >
@@ -277,20 +419,21 @@ export default function EditPlaylistModal({ open, onClose, playlistId }) {
           </Box>
 
           <Button
-            variant="contained"
             onClick={handleClose}
             sx={{
-              backgroundColor: '#4caf50',
-              borderRadius: 999,
-              textTransform: 'none',
+              borderRadius: '999px',
               px: 4,
-              '&:hover': { backgroundColor: '#43a047' },
+              backgroundColor: '#2e7d32',
+              color: 'white',
+              textTransform: 'none',
+              fontWeight: 600,
+              '&:hover': { backgroundColor: '#1b5e20' },
             }}
           >
-            Close
+            Save &amp; Close
           </Button>
         </Box>
       </Box>
-    </Dialog>
+    </Box>
   );
 }

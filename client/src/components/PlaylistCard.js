@@ -6,6 +6,8 @@ import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 import PlayPlaylistModal from './PlayPlaylistModal';
 import EditPlaylistModal from './EditPlaylistModal';   
+import MUIEditSongModal from './MUIEditSongModal';
+
 
 export default function PlaylistCard({ idNamePair }) {
   const { store } = useContext(GlobalStoreContext);
@@ -242,6 +244,7 @@ export default function PlaylistCard({ idNamePair }) {
         onClose={() => setEditOpen(false)}
         playlistId={idNamePair._id}
       />
+       <MUIEditSongModal />
     </>
   );
 }

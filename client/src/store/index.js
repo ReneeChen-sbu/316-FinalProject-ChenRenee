@@ -83,17 +83,18 @@ function GlobalStoreContextProvider(props) {
             // LIST UPDATE OF ITS NAME
             case GlobalStoreActionType.CHANGE_LIST_NAME: {
                 return setStore({
+                    ...store,
                     currentModal : CurrentModal.NONE,
                     idNamePairs: payload.idNamePairs,
                     currentList: payload.playlist,
                     currentSongIndex: -1,
                     currentSong: null,
-                    newListCounter: store.newListCounter,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
                     listMarkedForDeletion: null
                 });
             }
+            
             // STOP EDITING THE CURRENT LIST
             case GlobalStoreActionType.CLOSE_CURRENT_LIST: {
                 return setStore({
@@ -309,48 +310,64 @@ function GlobalStoreContextProvider(props) {
 
     // THIS FUNCTION PROCESSES CHANGING A LIST NAME
     store.changeListName = function (id, newName) {
-        // GET THE LIST
+        console.log("changeListName called with id:", id, "newName:", newName);
+    
         async function asyncChangeListName(id) {
+            // 1. Get the full playlist
             let response = await storeRequestSender.getPlaylistById(id);
-            if (response.success) {
-                let playlist = response.playlist;
-                playlist.name = newName;
-                async function updateList(playlist) {
-                    const listId = playlist._id ?? playlist.id;
-                    response = await storeRequestSender.updatePlaylistById(listId, playlist);
-                    if (response.success) {
-                        async function getListPairs(playlist) {
-                            response = await storeRequestSender.getPlaylistPairs();
-                            if (response.success) {
-                                let pairsArray = response.idNamePairs;
-                                storeReducer({
-                                    type: GlobalStoreActionType.CHANGE_LIST_NAME,
-                                    payload: {
-                                        idNamePairs: pairsArray,
-                                        playlist: playlist
-                                    }
-                                });
-                                store.setCurrentList(listId);
-                            }
-                        }
-                        getListPairs(playlist);
-                    }
-                }
-                updateList(playlist);
+            if (!response.success) {
+                console.error("Failed to get playlist for rename:", response.errorMessage);
+                return;
             }
+    
+            let playlist = response.playlist;
+            playlist.name = newName;
+    
+            // 2. Save to server
+            const listId = playlist._id ?? playlist.id;
+            const updateRes = await storeRequestSender.updatePlaylistById(listId, playlist);
+    
+            if (!updateRes.success) {
+                console.error("Failed to update playlist name on server:", updateRes.errorMessage);
+                return;
+            }
+    
+            // 3. Update idNamePairs locally (DON’T refetch all pairs)
+            const updatedPairs = store.idNamePairs.map(pair => {
+                const pairId = pair._id ?? pair.id;
+                if (pairId === listId) {
+                    return {
+                        ...pair,
+                        name: newName
+                    };
+                }
+                return pair;
+            });
+    
+            // 4. Push new state
+            storeReducer({
+                type: GlobalStoreActionType.CHANGE_LIST_NAME,
+                payload: {
+                    idNamePairs: updatedPairs,
+                    playlist: playlist
+                }
+            });
+    
+            console.log("Playlist name changed successfully");
         }
+    
         asyncChangeListName(id);
-    }
-
-    // THIS FUNCTION PROCESSES CLOSING THE CURRENTLY LOADED LIST
-    store.closeCurrentList = function () {
-        storeReducer({
-            type: GlobalStoreActionType.CLOSE_CURRENT_LIST,
-            payload: {}
-        });
-        tps.clearAllTransactions();
-        history.push("/");
-    }
+    };
+    
+        // THIS FUNCTION PROCESSES CLOSING THE CURRENTLY LOADED LIST
+        store.closeCurrentList = function () {
+            storeReducer({
+                type: GlobalStoreActionType.CLOSE_CURRENT_LIST,
+                payload: {}
+            });
+            tps.clearAllTransactions();
+        }
+        
 
     // THIS FUNCTION CREATES A NEW LIST
     store.createNewList = async function () {
@@ -618,14 +635,20 @@ function GlobalStoreContextProvider(props) {
     }
     store.addUpdateSongTransaction = function (index, newSongData) {
         let song = store.currentList.songs[index];
+        if (!song) return;
+        
         let oldSongData = {
             title: song.title,
             artist: song.artist,
             year: song.year,
             youTubeId: song.youTubeId
         };
+        
         let transaction = new UpdateSong_Transaction(this, index, oldSongData, newSongData);        
         tps.processTransaction(transaction);
+        
+        // Force an update to trigger re-render
+        store.updateCurrentList();
     }
     store.updateCurrentList = function() {
         async function asyncUpdateCurrentList() {
@@ -823,9 +846,43 @@ function GlobalStoreContextProvider(props) {
         return store.isSearching ? store.filteredPlaylists : store.idNamePairs;
     };
 
+    store.updatePlaylistDirectly = async function (id, updatedPlaylist) {
+        console.log("updatePlaylistDirectly called for id:", id);
+        console.log("Updated playlist data:", updatedPlaylist);
+        
+        try {
+          // First update locally
+          const list = store.currentList;
+          if (list && (list._id === id || list.id === id)) {
+            // Update the current list
+            Object.assign(list, updatedPlaylist);
+            
+            // Update the store state
+            storeReducer({
+              type: GlobalStoreActionType.SET_CURRENT_LIST,
+              payload: list
+            });
+          }
+          
+          // Then update on server
+          const response = await storeRequestSender.updatePlaylistById(id, updatedPlaylist);
+          if (response.success) {
+            console.log("Playlist updated successfully on server");
+            
+            // Refresh the playlist pairs
+            await store.loadIdNamePairs();
+            return true;
+          } else {
+            console.error("Failed to update playlist on server:", response.errorMessage);
+            return false;
+          }
+        } catch (error) {
+          console.error("Error updating playlist:", error);
+          return false;
+        }
+      };
     
 
-    
 
     function KeyPress(event) {
         if (!store.modalOpen && event.ctrlKey){
