@@ -242,19 +242,7 @@ const handleEditSong = (index) => {
               }}
               startIcon={<LibraryMusicIcon />}
             >
-              Add Song
             </Button>
-
-            <IconButton
-              onClick={handleClose}
-              sx={{
-                backgroundColor: '#eeeeee',
-                '&:hover': { backgroundColor: '#e0e0e0' },
-              }}
-              title="Close Modal"
-            >
-              <CloseIcon />
-            </IconButton>
           </Box>
         </Box>
 

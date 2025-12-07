@@ -119,12 +119,12 @@ const deletePlaylist = async (req, res) => {
 const getPlaylistById = async (req, res) => {
   try {
     const playlistId = req.params.id;
-    console.log('🎵 SERVER: getPlaylistById called with ID:', playlistId);
+    console.log('SERVER: getPlaylistById called with ID:', playlistId);
     
     // This might be getting called with "guest" as the ID!
     
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
-        console.log('🎵 SERVER: Invalid playlist ID:', playlistId);
+        console.log('SERVER: Invalid playlist ID:', playlistId);
         return res.status(400).json({
             success: false,
             errorMessage: 'Invalid playlist ID'

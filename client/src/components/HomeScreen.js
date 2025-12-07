@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from 'react';
+import AuthContext from '../auth'; 
 import { GlobalStoreContext } from '../store';
 import { 
     Box, 
@@ -20,6 +21,7 @@ import MUIEditSongModal from './MUIEditSongModal';
 
 export default function HomeScreen() {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext); 
     const [playlistNameFilter, setPlaylistNameFilter] = useState('');
     const [userNameFilter, setUserNameFilter] = useState('');
     const [songTitleFilter, setSongTitleFilter] = useState('');
@@ -36,8 +38,8 @@ export default function HomeScreen() {
     // Load playlists on component mount
     useEffect(() => {
         console.log('HomeScreen: Loading playlists...');
-        store.loadGuestPlaylists();
-    }, []);
+        store.loadIdNamePairs();
+    }, [auth.loggedIn, auth.user?.isGuest]);
 
     // Handle creating a new playlist - NO NAVIGATION
     const handleCreateNewPlaylist = async () => {

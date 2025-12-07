@@ -101,7 +101,6 @@ export function getPlaylistPairs() {
 }
 
 // GET – guest/public playlists
-// In store/requests/index.js - getGuestPlaylists function
 export function getGuestPlaylists() {
     console.log("DEBUG getGuestPlaylists called");
     console.log("  Base URL:", baseURL);
