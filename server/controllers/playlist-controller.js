@@ -176,24 +176,19 @@ const getPlaylistPairs = async (req, res) => {
       });
     }
 
-    const playlists = await Playlist.find({
-      $or: [
-        { owner: userId },
-        { published: true }
-      ]
-    })
-    .populate('owner', 'userName email')
-    .populate('songs')
-    .sort({ updatedAt: -1 });
+    const playlists = await Playlist.find({ owner: userId })
+      .populate('owner', 'userName email')
+      .populate('songs')
+      .sort({ updatedAt: -1 });
 
     const pairs = playlists.map(playlist => ({
       _id: playlist._id,
       name: playlist.name,
-      ownerName: playlist.owner.userName,
-      ownerEmail: playlist.owner.email,
-      songs: playlist.songs,
+      ownerName: playlist.owner?.userName || 'Unknown',
+      ownerEmail: playlist.owner?.email || 'unknown@example.com',
+      songs: playlist.songs || [],
       listenerCount: playlist.listenerCount || 0,
-      published: playlist.published || true
+      published: playlist.published ?? true
     }));
 
     return res.status(200).json({
@@ -208,6 +203,8 @@ const getPlaylistPairs = async (req, res) => {
     });
   }
 };
+
+
 
 // GET all playlists for logged-in user (full docs, not pairs)
 const getPlaylists = async (req, res) => {

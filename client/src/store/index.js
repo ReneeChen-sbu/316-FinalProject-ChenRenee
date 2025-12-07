@@ -457,23 +457,21 @@ function GlobalStoreContextProvider(props) {
     // OF A LIST, WHICH INCLUDES DEALING WITH THE TRANSACTION STACK. THE
     // FUNCTIONS ARE setCurrentList, addMoveItemTransaction, addUpdateItemTransaction,
     // moveItem, updateItem, updateCurrentList, undo, and redo
-    store.setCurrentList = function (id) {
+    store.setCurrentList = function (id, options = {}) {
         console.log("DEBUG: setCurrentList called with id:", id);
-        
-        // Helper function to check if it's a valid MongoDB ObjectId
-        // WITHOUT using mongoose (since we're on the client)
+    
+        const { navigate = true } = options; // ⬅️ default: true
+    
         const isValidObjectId = (id) => {
             if (typeof id !== 'string') return false;
-            // MongoDB ObjectId is 24 hex characters
             return /^[0-9a-fA-F]{24}$/.test(id);
         };
-        
-        // Skip invalid IDs
+    
         if (id === "guest" || id === "guest@playlister.com" || !isValidObjectId(id)) {
             console.log("DEBUG: Skipping setCurrentList - invalid ObjectId:", id);
             return;
         }
-        
+    
         async function asyncSetCurrentList(id) {
             try {
                 let response = await storeRequestSender.getPlaylistById(id);
@@ -483,7 +481,10 @@ function GlobalStoreContextProvider(props) {
                         type: GlobalStoreActionType.SET_CURRENT_LIST,
                         payload: playlist
                     });
-                    history.push("/playlist/" + id);
+    
+                    if (navigate) {
+                        history.push("/playlist/" + id);
+                    }
                 } else {
                     console.log("DEBUG: Failed to get playlist:", response.errorMessage);
                 }
@@ -492,8 +493,8 @@ function GlobalStoreContextProvider(props) {
             }
         }
         asyncSetCurrentList(id);
-    }
-
+    };
+    
     store.getPlaylistSize = function() {
         return store.currentList.songs.length;
     }
