@@ -131,18 +131,21 @@ export default function AppBanner() {
 
       {/* Right side - User avatar */}
       <IconButton onClick={handleMenuOpen}>
-        <Avatar
-          sx={{
-            backgroundColor: '#f5a623',
-            width: 40,
-            height: 40,
-            fontSize: '14px',
-            fontWeight: 'bold',
-          }}
-        >
-          {auth.loggedIn ? getUserInitials() : '👤'}
-        </Avatar>
-      </IconButton>
+      <Avatar
+        src={auth.user?.avatar || undefined}
+        sx={{
+          backgroundColor: auth.user?.avatar ? 'transparent' : '#f5a623',
+          width: 40,
+          height: 40,
+          fontSize: '14px',
+          fontWeight: 'bold',
+        }}
+      >
+      {/* Only show text if no avatar image */}
+      {!auth.user?.avatar && (auth.loggedIn ? getUserInitials() : '👤')}
+    </Avatar>
+    </IconButton>
+
 
       <Menu
         anchorEl={anchorEl}

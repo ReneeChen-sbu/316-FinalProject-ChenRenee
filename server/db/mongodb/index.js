@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+
 class MongoDatabaseManager {
     constructor() {
         this.uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/playlister';
@@ -85,14 +86,19 @@ class MongoDatabaseManager {
     async updateUser(userId, updateData) {
       try {
           console.log('Updating user in DB:', userId, updateData);
-          
-          // Make sure to exclude passwordHash from being returned
-          const updatedUser = await User.findByIdAndUpdate(
+  
+          // Use the registered Mongoose model, same as other methods
+          const UserModel = mongoose.model('User');
+  
+          const updatedUser = await UserModel.findByIdAndUpdate(
               userId,
-              updateData,
-              { new: true, select: '-passwordHash' }
-          );
-          
+              { $set: updateData },
+              {
+                  new: true,            // return updated doc
+                  runValidators: true   // optional, but nice to have
+              }
+          ).select('-passwordHash');      // exclude passwordHash
+  
           console.log('User updated in DB:', updatedUser);
           return updatedUser;
       } catch (error) {
@@ -100,6 +106,7 @@ class MongoDatabaseManager {
           throw error;
       }
   }
+  
 }
 
 module.exports = MongoDatabaseManager;

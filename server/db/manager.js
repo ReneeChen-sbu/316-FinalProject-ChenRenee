@@ -1,5 +1,22 @@
-class DatabaseManager {
-    async connect() { throw new Error("connect() not implemented"); }
+const mongoose = require('mongoose');
+
+class MongoDatabaseManager {
+    constructor() {
+        this.uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/playlister';
+    }
+
+    async connect() {
+        try {
+            await mongoose.connect(this.uri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true
+            });
+            console.log('Connected to MongoDB');
+        } catch (err) {
+            console.error('MongoDB connection error:', err);
+            process.exit(1);
+        }
+    }
     async getUserByEmail(email) { throw new Error("getUserByEmail() not implemented"); }
     async createUser(userData) { throw new Error("createUser() not implemented"); }
     async getPlaylistsByEmail(email) { throw new Error("getPlaylistsByEmail() not implemented"); }
@@ -22,5 +39,5 @@ class DatabaseManager {
 
   }
   
-  module.exports = DatabaseManager;
+  module.exports = MongoDatabaseManager;
   
