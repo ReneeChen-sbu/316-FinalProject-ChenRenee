@@ -48,7 +48,7 @@ async function importData() {
                     userName: userData.name || userData.userName || `User${Date.now()}`,
                     email: userData.email || `user${Date.now()}@example.com`,
                     passwordHash: '$2a$10$placeholderpasswordhash', // Default password hash
-                    avatarImage: '',
+                    avatar: '',
                     createdAt: new Date(),
                     updatedAt: new Date()
                 });
@@ -233,7 +233,7 @@ async function importData() {
                 userName: 'Ren',
                 email: 'renee@chen.com',
                 passwordHash: '$2a$10$1jbo3qZ6QOOK6HkMaS2cQOztNpAvaCag33yrp0M93UC4k0uBpMIUS',
-                avatarImage: '',
+                avatar: '',
                 createdAt: new Date(),
                 updatedAt: new Date()
             });

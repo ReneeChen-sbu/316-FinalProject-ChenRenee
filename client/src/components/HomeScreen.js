@@ -18,10 +18,10 @@ import PlaylistCard from './PlaylistCard';
 import MUIDeleteModal from './MUIDeleteModal';
 import MUIEditSongModal from './MUIEditSongModal';
 
-
 export default function HomeScreen() {
     const { store } = useContext(GlobalStoreContext);
     const { auth } = useContext(AuthContext); 
+
     const [playlistNameFilter, setPlaylistNameFilter] = useState('');
     const [userNameFilter, setUserNameFilter] = useState('');
     const [songTitleFilter, setSongTitleFilter] = useState('');
@@ -35,45 +35,39 @@ export default function HomeScreen() {
         severity: 'success'
     });
 
-    // Load playlists on component mount
+    // Load playlists on component mount or auth change
     useEffect(() => {
         console.log('HomeScreen: Loading playlists...');
         store.loadIdNamePairs();
     }, [auth.loggedIn, auth.user?.isGuest]);
 
-    // Handle creating a new playlist - NO NAVIGATION
+    // Create new playlist (no navigation)
     const handleCreateNewPlaylist = async () => {
         setIsCreatingNew(true);
         try {
             console.log('Creating new playlist...');
             
-            // Create the playlist WITHOUT navigation
             const response = await store.createNewList();
-            
             console.log('Create playlist response:', response);
             
             if (response && response.success) {
                 console.log('Playlist created successfully:', response.playlist);
                 
-                // Show success message
                 setSnackbar({
                     open: true,
                     message: 'Playlist created successfully!',
                     severity: 'success'
                 });
                 
-                // Refresh the playlist list after a short delay
-                // Use the appropriate function based on user type
                 setTimeout(() => {
                     if (auth.loggedIn && !auth.user?.isGuest) {
                         console.log('Logged in user, loading user playlists...');
-                        store.loadIdNamePairs();  // Load user's playlists
+                        store.loadIdNamePairs();
                     } else {
                         console.log('Guest user, loading guest playlists...');
-                        store.loadGuestPlaylists();  // Load public playlists
+                        store.loadGuestPlaylists();
                     }
                 }, 500);
-                
             } else {
                 console.error('Failed to create playlist:', response?.error);
                 setSnackbar({
@@ -95,7 +89,7 @@ export default function HomeScreen() {
     };
 
     const handleSearch = () => {
-        console.log('Search button clicked');
+        console.log('Search triggered');
         console.log('Filters:', {
             playlistNameFilter,
             userNameFilter,
@@ -104,26 +98,20 @@ export default function HomeScreen() {
             songYearFilter
         });
         
-        // Build search query from all filters
         const searchTerms = [];
         if (playlistNameFilter) {
-            console.log(`Adding playlist filter: ${playlistNameFilter}`);
             searchTerms.push(`playlist:${playlistNameFilter}`);
         }
         if (userNameFilter) {
-            console.log(`Adding user filter: ${userNameFilter}`);
             searchTerms.push(`username:${userNameFilter}`);
         }
         if (songTitleFilter) {
-            console.log(`Adding title filter: ${songTitleFilter}`);
             searchTerms.push(`title:${songTitleFilter}`);
         }
         if (songArtistFilter) {
-            console.log(`Adding artist filter: ${songArtistFilter}`);
             searchTerms.push(`artist:${songArtistFilter}`);
         }
         if (songYearFilter) {
-            console.log(`Adding year filter: ${songYearFilter}`);
             searchTerms.push(`year:${songYearFilter}`);
         }
         
@@ -131,6 +119,14 @@ export default function HomeScreen() {
         console.log('Final search query:', query);
         
         store.searchPlaylists(query);
+    };
+
+    // 🔑 NEW: Pressing Enter in any filter runs search
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSearch();
+        }
     };
 
     const handleClear = () => {
@@ -141,7 +137,6 @@ export default function HomeScreen() {
         setSongYearFilter('');
         store.clearSearch();
         
-        // Show cleared message
         setSnackbar({
             open: true,
             message: 'Search filters cleared',
@@ -153,7 +148,7 @@ export default function HomeScreen() {
         if (!playlists || !Array.isArray(playlists)) return [];
         
         const sorted = [...playlists];
-        switch(sortBy) {
+        switch (sortBy) {
             case 'listeners-hi-lo':
                 return sorted.sort((a, b) => (b.listens || 0) - (a.listens || 0));
             case 'listeners-lo-hi':
@@ -179,15 +174,13 @@ export default function HomeScreen() {
         }
     };
 
-    // Handle snackbar close
     const handleCloseSnackbar = () => {
         setSnackbar({ ...snackbar, open: false });
     };
 
-    // Use filtered playlists when searching, otherwise use all playlists
-    const displayPlaylists = store.isSearching ? 
-        (store.filteredPlaylists || []) : 
-        (store.idNamePairs || []);
+    const displayPlaylists = store.isSearching
+        ? (store.filteredPlaylists || [])
+        : (store.idNamePairs || []);
     
     const sortedPlaylists = sortPlaylists(displayPlaylists);
 
@@ -216,6 +209,7 @@ export default function HomeScreen() {
                         placeholder="by Playlist Name"
                         value={playlistNameFilter}
                         onChange={(e) => setPlaylistNameFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         variant="outlined"
                         size="small"
                         sx={{
@@ -229,6 +223,7 @@ export default function HomeScreen() {
                         placeholder="by User Name"
                         value={userNameFilter}
                         onChange={(e) => setUserNameFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         variant="outlined"
                         size="small"
                         sx={{
@@ -242,6 +237,7 @@ export default function HomeScreen() {
                         placeholder="by Song Title"
                         value={songTitleFilter}
                         onChange={(e) => setSongTitleFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         variant="outlined"
                         size="small"
                         sx={{
@@ -255,6 +251,7 @@ export default function HomeScreen() {
                         placeholder="by Song Artist"
                         value={songArtistFilter}
                         onChange={(e) => setSongArtistFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         variant="outlined"
                         size="small"
                         sx={{
@@ -268,6 +265,7 @@ export default function HomeScreen() {
                         placeholder="by Song Year"
                         value={songYearFilter}
                         onChange={(e) => setSongYearFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
                         variant="outlined"
                         size="small"
                         sx={{
@@ -313,9 +311,14 @@ export default function HomeScreen() {
                 {store.isSearching && (
                     <Box sx={{ mt: 2, p: 2, backgroundColor: '#e8e0f8', borderRadius: 2 }}>
                         <Typography variant="body2" color="#9c27b0">
-                            Found {store.filteredPlaylists ? store.filteredPlaylists.length : 0} playlist{store.filteredPlaylists && store.filteredPlaylists.length !== 1 ? 's' : ''}
+                            Found {store.filteredPlaylists ? store.filteredPlaylists.length : 0} playlist
+                            {store.filteredPlaylists && store.filteredPlaylists.length !== 1 ? 's' : ''}
                             {store.searchQuery && (
-                                <Typography variant="caption" component="div" sx={{ mt: 0.5, color: '#666' }}>
+                                <Typography
+                                    variant="caption"
+                                    component="div"
+                                    sx={{ mt: 0.5, color: '#666' }}
+                                >
                                     Search: {store.searchQuery}
                                 </Typography>
                             )}
@@ -345,7 +348,8 @@ export default function HomeScreen() {
                         </FormControl>
                     </Box>
                     <Typography sx={{ fontWeight: 600, color: '#666' }}>
-                        {sortedPlaylists ? sortedPlaylists.length : 0} Playlist{sortedPlaylists && sortedPlaylists.length !== 1 ? 's' : ''}
+                        {sortedPlaylists ? sortedPlaylists.length : 0} Playlist
+                        {sortedPlaylists && sortedPlaylists.length !== 1 ? 's' : ''}
                         {store.isSearching && ' (filtered)'}
                     </Typography>
                 </Box>
@@ -398,6 +402,7 @@ export default function HomeScreen() {
 
             {/* Modals */}
             <MUIDeleteModal />
+            <MUIEditSongModal />
 
             {/* Snackbar for notifications */}
             <Snackbar

@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useRef } from 'react';
 import AuthContext from '../auth';
 import { 
     Box, 
@@ -18,6 +18,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 export default function EditAccountScreen() {
     const { auth } = useContext(AuthContext);
     const history = useHistory();
+    const fileInputRef = useRef(null);
     
     const [formData, setFormData] = useState({
         userName: '',
@@ -25,6 +26,9 @@ export default function EditAccountScreen() {
         newPassword: '',
         passwordConfirm: ''
     });
+    
+    const [avatarPreview, setAvatarPreview] = useState(null);
+    const [avatarBase64, setAvatarBase64] = useState(null); // Store as Base64
     const [errors, setErrors] = useState({});
 
     useEffect(() => {
@@ -35,11 +39,70 @@ export default function EditAccountScreen() {
                 ...prev,
                 userName: auth.user.userName || '',  
                 email: auth.user.email || '',
-                newPassword: '', // Clear password fields
+                newPassword: '',
                 passwordConfirm: ''
             }));
+
+            // Set initial avatar if user has one
+            if (auth.user.avatar) {
+                setAvatarPreview(auth.user.avatar);
+                setAvatarBase64(auth.user.avatar);
+            } else if (auth.user.avatarUrl) {
+                // If using URL instead of Base64
+                setAvatarPreview(auth.user.avatarUrl);
+            }
         }
     }, [auth.user]);
+
+    // Convert file to Base64
+    const convertToBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
+    };
+
+    const handleAvatarSelect = () => {
+        fileInputRef.current.click();
+    };
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!validTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+            return;
+        }
+
+        // Validate file size (max 2MB for Base64 storage)
+        const maxSize = 2 * 1024 * 1024; // 2MB
+        if (file.size > maxSize) {
+            alert('Image file size must be less than 2MB for Base64 storage');
+            return;
+        }
+
+        try {
+            // Convert file to Base64
+            const base64 = await convertToBase64(file);
+            
+            // Store Base64 string
+            setAvatarBase64(base64);
+            
+            // Use Base64 string directly for preview
+            setAvatarPreview(base64);
+            
+            console.log('Image converted to Base64, length:', base64.length);
+            
+        } catch (error) {
+            console.error('Error converting image to Base64:', error);
+            alert('Failed to process image. Please try another image.');
+        }
+    };
 
     const handleInputChange = (field) => (event) => {
         const value = event.target.value;
@@ -68,12 +131,10 @@ export default function EditAccountScreen() {
     
         const newErrors = {};
         
-        // User name validation
         if (!formData.userName.trim()) {
             newErrors.userName = 'User name is required';
         }
         
-        // Password validation (only if trying to change password)
         if (formData.newPassword || formData.passwordConfirm) {
             if (formData.newPassword && formData.newPassword.length < 8) {
                 newErrors.newPassword = 'Password must be at least 8 characters';
@@ -92,15 +153,23 @@ export default function EditAccountScreen() {
         try {
             const updateData = {
                 userName: formData.userName.trim()
-                // Email is NOT sent (cannot be changed per requirements)
             };
     
-            // Only include new password if provided
             if (formData.newPassword) {
                 updateData.newPassword = formData.newPassword;
             }
+
+            // Send avatar as Base64 string
+            if (avatarBase64) {
+                updateData.avatar = avatarBase64;
+                console.log('Sending Base64 avatar, length:', avatarBase64.length);
+            }
     
-            console.log('Sending update data:', updateData);
+            console.log('Sending update data:', { 
+                ...updateData, 
+                avatar: avatarBase64 ? `Base64 string (${avatarBase64.length} chars)` : 'none' 
+            });
+            
             await auth.updateUserProfile(updateData);
             history.push('/home');
     
@@ -140,7 +209,7 @@ export default function EditAccountScreen() {
                 flexDirection: 'column'
             }}
         >
-            {/* Header Bar - Magenta */}
+            {/* Header Bar */}
             <Box 
                 sx={{
                     backgroundColor: '#e020a0',
@@ -163,18 +232,19 @@ export default function EditAccountScreen() {
                     <HomeIcon />
                 </IconButton>
                 <Avatar 
+                    src={avatarPreview}
                     sx={{ 
                         width: 40, 
                         height: 40,
-                        backgroundColor: '#ffd700',
+                        backgroundColor: avatarPreview ? 'transparent' : '#ffd700',
                         border: '2px solid white'
                     }}
                 >
-                    <AccountCircleIcon />
+                    {!avatarPreview && <AccountCircleIcon />}
                 </Avatar>
             </Box>
 
-            {/* Content Area - Cream/Beige */}
+            {/* Content Area */}
             <Box 
                 sx={{
                     flex: 1,
@@ -215,21 +285,37 @@ export default function EditAccountScreen() {
                         gap: 3
                     }}
                 >
+                    {/* Hidden file input */}
+                    <input
+                        type="file"
+                        accept="image/*"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                    />
+
                     {/* Avatar Section */}
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', pt: 1 }}>
                         <Avatar 
+                            src={avatarPreview}
                             sx={{ 
                                 width: 60, 
                                 height: 60,
-                                backgroundColor: '#ffd700',
-                                mb: 1
+                                backgroundColor: avatarPreview ? 'transparent' : '#ffd700',
+                                mb: 1,
+                                cursor: 'pointer',
+                                '&:hover': {
+                                    opacity: 0.8
+                                }
                             }}
+                            onClick={handleAvatarSelect}
                         >
-                            <AccountCircleIcon sx={{ fontSize: 40 }} />
+                            {!avatarPreview && <AccountCircleIcon sx={{ fontSize: 40 }} />}
                         </Avatar>
                         <Button
                             variant="contained"
                             size="small"
+                            onClick={handleAvatarSelect}
                             sx={{
                                 backgroundColor: '#333',
                                 color: 'white',
@@ -243,6 +329,26 @@ export default function EditAccountScreen() {
                         >
                             Select
                         </Button>
+                        {avatarPreview && (
+                            <Button
+                                size="small"
+                                onClick={() => {
+                                    setAvatarPreview(null);
+                                    setAvatarBase64(null);
+                                    if (fileInputRef.current) {
+                                        fileInputRef.current.value = '';
+                                    }
+                                }}
+                                sx={{
+                                    color: '#666',
+                                    textTransform: 'none',
+                                    fontSize: '0.7rem',
+                                    mt: 0.5
+                                }}
+                            >
+                                Remove
+                            </Button>
+                        )}
                     </Box>
 
                     {/* Form Fields */}
@@ -273,13 +379,13 @@ export default function EditAccountScreen() {
                             }}
                         />
 
-                        {/* Email Field - DISABLED (cannot be changed) */}
+                        {/* Email Field - DISABLED */}
                         <TextField
                             fullWidth
                             label="Email"
                             type="email"
                             value={formData.email}
-                            disabled // Disable email field
+                            disabled
                             variant="outlined"
                             size="small"
                             sx={{
@@ -399,4 +505,3 @@ export default function EditAccountScreen() {
         </Box>
     );
 }
-

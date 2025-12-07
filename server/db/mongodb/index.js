@@ -81,6 +81,25 @@ class MongoDatabaseManager {
         const song = new Song(songData);
         return await song.save();
     }
+
+    async updateUser(userId, updateData) {
+      try {
+          console.log('Updating user in DB:', userId, updateData);
+          
+          // Make sure to exclude passwordHash from being returned
+          const updatedUser = await User.findByIdAndUpdate(
+              userId,
+              updateData,
+              { new: true, select: '-passwordHash' }
+          );
+          
+          console.log('User updated in DB:', updatedUser);
+          return updatedUser;
+      } catch (error) {
+          console.error('Error updating user in DB:', error);
+          throw error;
+      }
+  }
 }
 
 module.exports = MongoDatabaseManager;

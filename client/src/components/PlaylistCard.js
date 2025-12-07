@@ -62,7 +62,7 @@ export default function PlaylistCard({ idNamePair }) {
   (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown User');
 
   const isOwner = auth.loggedIn && auth.user?.email === ownerEmail;
-  const canCopy = auth.loggedIn; 
+  const canCopy = auth.loggedIn && !auth.user?.isGuest; 
 
   const listenerCount =
     idNamePair?.listens || idNamePair?.listenerCount || idNamePair?.playCount || 0;
@@ -116,7 +116,7 @@ export default function PlaylistCard({ idNamePair }) {
                 fontSize: '24px',
               }}
             >
-              🤖
+              
             </Avatar>
 
             <Box>

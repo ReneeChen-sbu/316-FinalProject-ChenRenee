@@ -18,18 +18,32 @@ getLoggedIn = async (req, res) => {
 
         const user = await db.getUserById(verified.id);
 
+        if (!user) {
+            return res.status(200).json({
+                loggedIn: false,
+                user: null,
+                errorMessage: "User not found"
+            });
+        }
+
         return res.status(200).json({
             loggedIn: true,
             user: {
-                // canonical display name
+                _id: user._id,
                 userName: user.userName || user.firstName || user.email,
-                email: user.email
+                email: user.email,
+                avatar: user.avatar || null, // ADD THIS
+                isGuest: user.isGuest || false
             }
         });
 
     } catch (err) {
-        console.log("err: " + err);
-        res.status(500).json(false);
+        console.log("getLoggedIn error: " + err);
+        res.status(500).json({
+            loggedIn: false,
+            user: null,
+            errorMessage: "Server error"
+        });
     }
 };
 
@@ -187,60 +201,74 @@ registerUser = async (req, res) => {
 
 updateUserProfile = async (req, res) => {
     try {
-        console.log('UPDATE PROFILE ROUTE HIT - UPDATING DATABASE');
-        const { userName, newPassword } = req.body;
+        
+        const { userName, newPassword, avatar } = req.body;
         const userId = req.userId;
 
-        console.log('User ID:', userId);
-        console.log('Request body:', req.body);
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                errorMessage: 'Not authenticated'
+            });
+        }
 
-        const user = await User.findById(userId);
-        if (!user) {
+        const updateData = {};
+
+        // Update username if provided
+        if (userName !== undefined) {
+            updateData.userName = userName.trim();
+            console.log('Updating username to:', updateData.userName);
+        }
+
+        // Update password if provided
+        if (newPassword) {
+            const saltRounds = 10;
+            const salt = await bcrypt.genSalt(saltRounds);
+            updateData.passwordHash = await bcrypt.hash(newPassword, salt);
+            console.log('Updating password');
+        }
+
+        // Handle avatar (Base64 string)
+        if (avatar !== undefined) {
+            if (avatar === null || avatar === '') {
+                // Clear avatar
+                updateData.avatar = null;
+                console.log('Clearing avatar');
+            } else if (avatar.startsWith('data:image/')) {
+                // It's a valid Base64 image
+                updateData.avatar = avatar;
+                console.log('Setting avatar (Base64 string length):', avatar.length);
+            } else {
+                console.log('Invalid avatar format, skipping');
+            }
+        }
+
+        console.log('Final update data for DB:', updateData);
+
+        // Update user in database using your db manager
+        const updatedUser = await db.updateUser(userId, updateData);
+        
+        if (!updatedUser) {
             return res.status(404).json({
                 success: false,
                 errorMessage: 'User not found'
             });
         }
 
-        // Update display name
-        if (userName !== undefined && userName !== user.userName) {
-            console.log(`Updating userName from "${user.userName}" to "${userName}"`);
-            user.userName = userName;
-        }
+        console.log('User updated successfully in DB');
 
-        // Update password (if requested)
-        if (newPassword) {
-            if (newPassword.length < 8) {
-                return res.status(400).json({
-                    success: false,
-                    errorMessage: 'New password must be at least 8 characters'
-                });
-            }
+        // Return user data (excluding password hash)
+        const userResponse = {
+            _id: updatedUser._id,
+            userName: updatedUser.userName,
+            email: updatedUser.email,
+            avatar: updatedUser.avatar,
+            isGuest: updatedUser.isGuest || false
+        };
 
-            console.log('Hashing new password...');
-            const saltRounds = 10;
-            const salt = await bcrypt.genSalt(saltRounds);
-            user.passwordHash = await bcrypt.hash(newPassword, salt);
-            console.log('Password updated successfully');
-        }
-
-        user.updatedAt = new Date();
-        console.log('Saving user to database...');
-        await user.save();
-
-        console.log('User saved. New data:', {
-            userName: user.userName,
-            email: user.email,
-            updatedAt: user.updatedAt
-        });
-
-        res.json({
+        res.status(200).json({
             success: true,
-            user: {
-                id: user._id,
-                userName: user.userName,
-                email: user.email
-            },
+            user: userResponse,
             message: 'Profile updated successfully'
         });
 
@@ -248,11 +276,10 @@ updateUserProfile = async (req, res) => {
         console.error('Update profile error:', error);
         res.status(500).json({
             success: false,
-            errorMessage: 'Server error: ' + error.message
+            errorMessage: 'Failed to update profile: ' + error.message
         });
     }
 };
-
 
 module.exports = {
     getLoggedIn,

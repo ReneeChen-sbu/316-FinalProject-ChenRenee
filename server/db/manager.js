@@ -8,8 +8,16 @@ class DatabaseManager {
     async updatePlaylist(id, data) { throw new Error("updatePlaylist() not implemented"); }
     async deletePlaylist(id) { throw new Error("deletePlaylist() not implemented"); }
     async getAllPlaylists() { throw new Error("getAllPlaylists() not implemented"); }
-    async getUserById(id) { throw new Error("getUserById() not implemented"); }
     async updateUser(id, data) { throw new Error("updateUser() not implemented"); }
+    async getUserById(id) {
+      try {
+          const user = await User.findById(id).select('-passwordHash');
+          return user;
+      } catch (error) {
+          console.error('DB: Error getting user by ID:', error);
+          throw error;
+      }
+  }
 
 
   }

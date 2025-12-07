@@ -14,9 +14,9 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    avatarImage: {
-        type: String, // Base64 string
-        default: ''
+    avatar: {
+      type: String, 
+      default: null
     },
     createdAt: {
         type: Date,
