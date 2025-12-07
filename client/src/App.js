@@ -41,7 +41,6 @@ function AppContent() {
                     <>
                         <AppBanner />
                         <HomeScreen />
-                    
                     </>
                 ) : (
                     <SplashScreen showFullScreen={false} />  

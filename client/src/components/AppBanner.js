@@ -61,7 +61,7 @@ export default function AppBanner() {
       {/* Left side - Home button and tabs */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <IconButton
-          onClick={handleHome}
+          onClick={() => history.push('/')}
           sx={{
             backgroundColor: 'white',
             width: 40,
