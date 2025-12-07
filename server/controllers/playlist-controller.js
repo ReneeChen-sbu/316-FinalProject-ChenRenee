@@ -194,9 +194,14 @@ const deletePlaylist = async (req, res) => {
 const getPlaylistById = async (req, res) => {
   try {
     const playlistId = req.params.id;
-    console.log('SERVER: getPlaylistById called with ID:', playlistId);
+    const userId = req.userId; // Get userId early for debugging
     
-    // This might be getting called with "guest" as the ID!
+    console.log('SERVER: getPlaylistById called with:', {
+      playlistId,
+      userId,
+      hasUserId: !!userId,
+      params: req.params
+    });
     
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         console.log('SERVER: Invalid playlist ID:', playlistId);
@@ -211,19 +216,49 @@ const getPlaylistById = async (req, res) => {
       .populate('songs');
 
     if (!playlist) {
+      console.log('SERVER: Playlist not found:', playlistId);
       return res.status(404).json({
         success: false,
         errorMessage: 'Playlist not found'
       });
     }
 
+    console.log('SERVER: Found playlist:', {
+      id: playlist._id,
+      name: playlist.name,
+      ownerId: playlist.owner?._id,
+      ownerEmail: playlist.owner?.email,
+      published: playlist.published,
+      userId
+    });
+
     // Check if user can access this playlist
-    const userId = req.userId;
-    if (!playlist.published && (!userId || playlist.owner.toString() !== userId)) {
-      return res.status(403).json({
-        success: false,
-        errorMessage: 'Access denied - playlist is private'
+    if (!playlist.published) {
+      console.log('SERVER: Playlist is private, checking access...');
+      
+      if (!userId) {
+        console.log('SERVER: No userId, denying access');
+        return res.status(401).json({
+          success: false,
+          errorMessage: 'Authentication required'
+        });
+      }
+      
+      console.log('SERVER: Comparing owner:', {
+        ownerId: playlist.owner?._id?.toString(),
+        userId: userId.toString(),
+        match: playlist.owner?._id?.toString() === userId.toString()
       });
+      
+      if (!playlist.owner || playlist.owner._id.toString() !== userId) {
+        console.log('SERVER: Access denied - not the owner');
+        return res.status(403).json({
+          success: false,
+          errorMessage: 'Access denied - playlist is private'
+        });
+      }
+      
+      console.log('SERVER: Access granted - user is owner');
     }
 
     return res.status(200).json({

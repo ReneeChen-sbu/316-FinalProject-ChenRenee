@@ -63,8 +63,15 @@ export default function HomeScreen() {
                 });
                 
                 // Refresh the playlist list after a short delay
+                // Use the appropriate function based on user type
                 setTimeout(() => {
-                    store.loadGuestPlaylists();
+                    if (auth.loggedIn && !auth.user?.isGuest) {
+                        console.log('Logged in user, loading user playlists...');
+                        store.loadIdNamePairs();  // Load user's playlists
+                    } else {
+                        console.log('Guest user, loading guest playlists...');
+                        store.loadGuestPlaylists();  // Load public playlists
+                    }
                 }, 500);
                 
             } else {

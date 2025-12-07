@@ -56,10 +56,15 @@ export default function PlaylistCard({ idNamePair }) {
 
   const ownerEmail = idNamePair?.ownerEmail || idNamePair?.email || idNamePair?.owner || '';
   const ownerName =
-    idNamePair?.userName ||
-    idNamePair?.ownerName ||
-    idNamePair?.ownerUserName ||
-    (idNamePair?.ownerEmail ? idNamePair.ownerEmail.split('@')[0] : 'Unknown User');
+  idNamePair?.userName ||
+  idNamePair?.ownerName ||
+  idNamePair?.ownerUserName ||
+  (ownerEmail ? ownerEmail.split('@')[0] : 'Unknown User');
+
+  const isOwner = auth.loggedIn && auth.user?.email === ownerEmail;
+
+
+
 
   const listenerCount =
     idNamePair?.listens || idNamePair?.listenerCount || idNamePair?.playCount || 0;
@@ -127,6 +132,8 @@ export default function PlaylistCard({ idNamePair }) {
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {isOwner && (
+            <>
             <Button
               size="small"
               onClick={handleDelete}
@@ -164,6 +171,8 @@ export default function PlaylistCard({ idNamePair }) {
             >
               Edit
             </Button>
+            </>
+          )}
 
             {auth.loggedIn && (
             <Button
