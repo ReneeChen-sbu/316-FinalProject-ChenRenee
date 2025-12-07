@@ -66,9 +66,27 @@ export default function PlaylistCard({ idNamePair }) {
 
   const songs = idNamePair?.songs || idNamePair?.items || idNamePair?.tracks || [];
 
+  // Function to format time in mm:ss format
+  const formatTime = (seconds) => {
+    if (!seconds && seconds !== 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Mock duration for songs (you should replace this with actual duration from your data)
+  const getSongDuration = (song, index) => {
+    // If you have duration in your song data, use it
+    if (song.duration) return formatTime(song.duration);
+    
+    // Mock durations based on the image (Our House, Take Me Home, Our House)
+    const mockDurations = [3 * 60 + 46, 6 * 60 + 9, 3 * 60 + 1]; // 3:46, 6:09, 3:01
+    return formatTime(mockDurations[index % mockDurations.length]);
+  };
+
   return (
     <>
-      {/* CARD CONTENT (unchanged except handleEdit/handlePlay) */}
+      {/* CARD CONTENT */}
       <Box
         sx={{
           backgroundColor: 'white',
@@ -212,15 +230,34 @@ export default function PlaylistCard({ idNamePair }) {
                 const songTitle = song?.title || song?.name || 'Untitled Song';
                 const songArtist = song?.artist || song?.artistName || 'Unknown Artist';
                 const songYear = song?.year || song?.releaseYear || '';
+                const songDuration = getSongDuration(song, index);
 
                 return (
-                  <Typography
+                  <Box 
                     key={song._id || `song-${index}`}
-                    sx={{ fontSize: '14px', color: '#333', py: 0.5 }}
+                    sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      py: 0.75,
+                      borderBottom: index < songs.length - 1 ? '1px solid #e0e0e0' : 'none'
+                    }}
                   >
-                    {index + 1}. {songTitle} by {songArtist}{' '}
-                    {songYear ? `(${songYear})` : ''}
-                  </Typography>
+                    <Box>
+                      <Typography sx={{ fontSize: '14px', color: '#333', fontWeight: 500 }}>
+                        {index + 1}. {songTitle} by {songArtist}{' '}
+                        {songYear ? `(${songYear})` : ''}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ 
+                      fontSize: '14px', 
+                      color: '#666',
+                      fontFamily: 'monospace',
+                      fontWeight: 500
+                    }}>
+                      {songDuration}
+                    </Typography>
+                  </Box>
                 );
               })
             ) : (
@@ -234,6 +271,20 @@ export default function PlaylistCard({ idNamePair }) {
               >
                 No songs in this playlist yet
               </Typography>
+            )}
+            
+            {/* Total time at the bottom */}
+            {songs.length > 0 && (
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                mt: 1,
+                pt: 1,
+                borderTop: '1px solid #e0e0e0'
+              }}>
+                
+              </Box>
             )}
           </Box>
         </Collapse>

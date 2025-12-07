@@ -37,7 +37,8 @@ const SongSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
-    }
+    },
+    duration: Number
 });
 
 // Compound index: No two songs can have same title, artist, and year
