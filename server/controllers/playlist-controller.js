@@ -236,14 +236,20 @@ const updatePlaylist = async (req, res) => {
   try {
     console.log("SERVER: updatePlaylist called");
     console.log("Body received:", JSON.stringify(req.body, null, 2));
+    
     const userId = req.userId;
     const playlistId = req.params.id;
     const updateData = req.body;
 
+    // DEBUG: Check what we're receiving
+    console.log("songs received type:", typeof updateData.songs);
+    console.log("songs received value:", updateData.songs);
+
+    // FIX: If songs is a string, parse it to array
     if (updateData.songs && typeof updateData.songs === 'string') {
       try {
         updateData.songs = JSON.parse(updateData.songs);
-        console.log("Parsed songs from string to array");
+        console.log("Parsed songs from string to array:", updateData.songs);
       } catch (parseErr) {
         console.error("Failed to parse songs:", parseErr);
         return res.status(400).json({
@@ -252,6 +258,14 @@ const updatePlaylist = async (req, res) => {
         });
       }
     }
+
+    // Make sure songs is an array
+    if (!Array.isArray(updateData.songs)) {
+      console.error("songs is not an array after parsing:", updateData.songs);
+      updateData.songs = [];
+    }
+
+    console.log("Processed updateData.songs:", updateData.songs);
 
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
       return res.status(400).json({
@@ -296,7 +310,9 @@ const updatePlaylist = async (req, res) => {
     }
     
     if (updateData.songs !== undefined) {
+      // Make sure we're assigning an array
       playlist.songs = updateData.songs;
+      console.log("Setting playlist.songs to:", playlist.songs);
     }
     
     if (updateData.listenerCount !== undefined) {
@@ -309,12 +325,16 @@ const updatePlaylist = async (req, res) => {
     
     playlist.updatedAt = new Date();
 
+    console.log("Saving playlist with songs:", playlist.songs);
+    
     const updated = await playlist.save();
     
     // Populate before returning
     const populated = await Playlist.findById(updated._id)
       .populate('owner', 'userName email')
       .populate('songs');
+
+    console.log("Successfully updated playlist");
 
     return res.status(200).json({
       success: true,
@@ -328,6 +348,7 @@ const updatePlaylist = async (req, res) => {
     });
   }
 };
+
 
 // GUEST / public library – get all published playlists
 const getGuestPlaylists = async (req, res) => {

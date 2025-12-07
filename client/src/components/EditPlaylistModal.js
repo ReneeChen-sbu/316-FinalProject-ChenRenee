@@ -74,9 +74,18 @@ export default function EditPlaylistModal({ open, onClose }) {
   };
 
   const handleClose = () => {
+    console.log("Closing EditPlaylistModal");
     saveTitleIfNeeded();
-    if (onClose) onClose();
-  };
+    
+    if (store.currentList) {
+        console.log("Saving playlist before closing");
+        store.updateCurrentList();
+    }
+
+    setTimeout(() => {
+        if (onClose) onClose();
+    }, 300);
+};
 
   // Song handlers 
 

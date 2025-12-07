@@ -494,7 +494,7 @@ function GlobalStoreContextProvider(props) {
         console.log("Current modal after:", store.currentModal);
         console.log("Should be EDIT_SONG:", store.currentModal === CurrentModal.EDIT_SONG);
     };
-    
+
     store.hideModals = () => {
         auth.errorMessage = null;
         storeReducer({
@@ -668,37 +668,48 @@ function GlobalStoreContextProvider(props) {
     };
     
     store.updateCurrentList = function () {
-        async function asyncUpdateCurrentList() {
-            if (!store.currentList) {
-                console.warn("updateCurrentList called with no currentList");
-                return;
-            }
+    console.log("DEBUG: updateCurrentList called");
+    console.log("Current list songs:", store.currentList?.songs);
+    console.log("Songs type:", typeof store.currentList?.songs);
     
-            const listId = store.currentList._id ?? store.currentList.id;
-            const listCopy = {
-                ...store.currentList,
-                songs: [...store.currentList.songs]
-            };
-    
-            try {
-                const response = await storeRequestSender.updatePlaylistById(listId, listCopy);
-                if (!response.success) {
-                    console.error("updatePlaylistById failed:", response.errorMessage);
-                }
-            } catch (err) {
-                console.error("Error calling updatePlaylistById:", err);
-            }
-    
-            // ALWAYS update React state so UI reflects the latest songs,
-            // even if the server rejected the change (e.g., Access denied).
-            storeReducer({
-                type: GlobalStoreActionType.SET_CURRENT_LIST,
-                payload: listCopy
-            });
+    async function asyncUpdateCurrentList() {
+        if (!store.currentList) {
+            console.warn("updateCurrentList called with no currentList");
+            return;
         }
-    
-        asyncUpdateCurrentList();
-    };
+
+        const listId = store.currentList._id ?? store.currentList.id;
+        
+        // Create a clean copy with proper songs array
+        const listCopy = {
+            ...store.currentList,
+            songs: Array.isArray(store.currentList.songs) 
+                ? [...store.currentList.songs] 
+                : []
+        };
+        
+        console.log("DEBUG: Sending to server:", listCopy);
+        
+        try {
+            const response = await storeRequestSender.updatePlaylistById(listId, listCopy);
+            if (response.success) {
+                console.log("Server update successful");
+                
+                // Update local state with server response
+                storeReducer({
+                    type: GlobalStoreActionType.SET_CURRENT_LIST,
+                    payload: response.playlist || listCopy
+                });
+            } else {
+                console.error("updatePlaylistById failed:", response.errorMessage);
+            }
+        } catch (err) {
+            console.error("Error calling updatePlaylistById:", err);
+        }
+    }
+
+    asyncUpdateCurrentList();
+};
     
     store.undo = function () {
         tps.undoTransaction();

@@ -97,16 +97,28 @@ export function getGuestPlaylists() {
 
 // UPDATE playlist
 export function updatePlaylistById(id, playlist) {
-    console.log("DEBUG: Updating playlist with ID:", id);
+    console.log("DEBUG: updatePlaylistById called with id:", id);
     console.log("DEBUG: Original playlist data:", playlist);
     
-    // Make sure songs is a proper array, not a string
+    // Create a clean copy with proper songs array
     const playlistToSend = {
         ...playlist,
-        songs: Array.isArray(playlist.songs) ? playlist.songs : JSON.parse(playlist.songs || '[]')
+        songs: playlist.songs || []
     };
     
+    // Make sure songs is not a string
+    if (typeof playlistToSend.songs === 'string') {
+        try {
+            playlistToSend.songs = JSON.parse(playlistToSend.songs);
+        } catch (e) {
+            console.error("Failed to parse songs string:", e);
+            playlistToSend.songs = [];
+        }
+    }
+    
     console.log("DEBUG: Sending playlist data:", playlistToSend);
+    console.log("DEBUG: songs type:", typeof playlistToSend.songs);
+    console.log("DEBUG: songs is array?", Array.isArray(playlistToSend.songs));
     
     return fetchJSON(`/${id}`, {
         method: 'PUT',
