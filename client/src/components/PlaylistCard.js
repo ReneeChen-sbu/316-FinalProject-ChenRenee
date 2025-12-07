@@ -1,5 +1,6 @@
 import { useState, useContext } from 'react';
-import GlobalStoreContext from '../store';
+import AuthContext from '../auth';
+import { GlobalStoreContext } from '../store';
 import { Box, Button, Avatar, IconButton, Typography, Collapse } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -11,6 +12,7 @@ import MUIEditSongModal from './MUIEditSongModal';
 
 export default function PlaylistCard({ idNamePair }) {
   const { store } = useContext(GlobalStoreContext);
+  const { auth } = useContext(AuthContext);
   const [expanded, setExpanded] = useState(false);
 
   const [playOpen, setPlayOpen] = useState(false);  
@@ -31,10 +33,14 @@ export default function PlaylistCard({ idNamePair }) {
   };
   
 
-  const handleCopy = (e) => {
+  const handleCopy = async (e) => {
     e.stopPropagation();
-    console.log('Copy playlist', idNamePair._id);
+    const result = await store.copyPlaylist(idNamePair._id);
+    if (!result.success) {
+      console.error('Failed to copy playlist:', result.error);
+    }
   };
+  
 
   const handlePlay = (e) => {
     e.stopPropagation();
@@ -141,6 +147,7 @@ export default function PlaylistCard({ idNamePair }) {
               Edit
             </Button>
 
+            {auth.loggedIn && (
             <Button
               size="small"
               onClick={handleCopy}
@@ -159,6 +166,7 @@ export default function PlaylistCard({ idNamePair }) {
             >
               Copy
             </Button>
+            )}
 
             <Button
               size="small"

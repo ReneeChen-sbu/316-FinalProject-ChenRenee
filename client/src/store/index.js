@@ -485,6 +485,35 @@ function GlobalStoreContextProvider(props) {
             store.deleteList(listIdToDelete);
         }
     }
+
+    store.copyPlaylist = async function (playlistId) {
+        try {
+            console.log('Copying playlist with ID:', playlistId);
+    
+            const response = await fetch(`http://localhost:4000/api/playlists/${playlistId}/copy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+    
+            console.log('Copy response status:', response.status);
+    
+            const data = await response.json();
+    
+            if (!data.success) {
+                console.error('Copy playlist failed:', data.errorMessage);
+                return { success: false, error: data.errorMessage };
+            }
+    
+            await store.loadIdNamePairs();
+            return { success: true, playlist: data.playlist };
+        } catch (err) {
+            console.error('Error copying playlist:', err);
+            return { success: false, error: err.message };
+        }
+    };
+    
+    
     // THIS FUNCTION SHOWS THE MODAL FOR PROMPTING THE USER
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST
 

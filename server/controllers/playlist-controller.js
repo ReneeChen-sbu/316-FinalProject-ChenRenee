@@ -73,6 +73,81 @@ const createPlaylist = async (req, res) => {
   }
 };
 
+// COPY Playlists
+ const copyPlaylist = async (req, res) => {
+  console.log('SERVER: copyPlaylist route HIT, id =', req.params.id);
+    try {
+        const userId = req.userId;     
+        const playlistId = req.params.id; 
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                errorMessage: 'You must be logged in to copy a playlist.'
+            });
+        }
+
+        const original = await Playlist.findById(playlistId);
+        if (!original) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Original playlist not found.'
+            });
+        }
+
+        const baseName = original.name || 'Untitled Playlist';
+        let newName = baseName;
+        let suffix = 1;
+
+        // no user may own two playlists with the same name
+        while (true) {
+            const clash = await Playlist.findOne({ owner: userId, name: newName });
+            if (!clash) break;
+            newName = `${baseName} (${suffix++})`;
+        }
+
+        const copiedSongs = (original.songs || []).map(song => {
+          const s = song.toObject ? song.toObject() : song;
+      
+          return {
+              title:     s.title,
+              artist:    s.artist,
+              year:      s.year,
+              youTubeId: s.youTubeId
+          };
+      });
+      
+
+  
+        const newPlaylist = new Playlist({
+            name: newName,
+            owner: userId,
+            songs: copiedSongs,     // deep-copied subdocuments
+            listenerCount: 0,
+            published: false,
+            publishedDate: null,
+            createdAt: new Date(),
+            updatedAt: new Date()
+        });
+
+        await newPlaylist.save();
+
+        return res.status(201).json({
+            success: true,
+            playlist: newPlaylist
+        });
+
+    } catch (error) {
+        console.error('Copy playlist error:', error);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Server error while copying playlist.'
+        });
+    }
+};
+
+
+
 // DELETE playlist
 const deletePlaylist = async (req, res) => {
   try {
@@ -405,5 +480,6 @@ module.exports = {
   getPlaylistPairs,
   getPlaylists,
   updatePlaylist,
+  copyPlaylist,
   getGuestPlaylists
 };
