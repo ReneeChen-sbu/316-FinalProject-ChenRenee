@@ -42,7 +42,7 @@ export const GlobalStoreActionType = {
 // WE'LL NEED THIS TO PROCESS TRANSACTIONS
 const tps = new jsTPS();
 
-const CurrentModal = {
+export const CurrentModal = {
     NONE : "NONE",
     DELETE_LIST : "DELETE_LIST",
     EDIT_SONG : "EDIT_SONG",

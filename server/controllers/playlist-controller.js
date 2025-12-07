@@ -124,8 +124,8 @@ const createPlaylist = async (req, res) => {
             owner: userId,
             songs: copiedSongs,     // deep-copied subdocuments
             listenerCount: 0,
-            published: false,
-            publishedDate: null,
+            published: true,
+            publishedDate: new Date(),
             createdAt: new Date(),
             updatedAt: new Date()
         });

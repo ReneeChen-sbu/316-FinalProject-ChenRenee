@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { Box, Typography, TextField, Button, Grid, Divider } from '@mui/material';
-import GlobalStoreContext from '../store';
+import GlobalStoreContext, { CurrentModal } from '../store';
 
 // Green color palette
 const greenColors = {
@@ -11,30 +11,61 @@ const greenColors = {
 
 export default function MUIEditSongModal() {
     const { store } = useContext(GlobalStoreContext);
+    
+    // Use local state to prevent infinite loops
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [currentSong, setCurrentSong] = useState(null);
+    const [currentIndex, setCurrentIndex] = useState(-1);
 
-    const isOpen = store.isEditSongModalOpen();
-    const currentSong = store.currentSong;
-    const currentIndex = store.currentSongIndex;
-
+    // Form state
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
     const [year, setYear] = useState('');
     const [youTubeId, setYouTubeId] = useState('');
 
     useEffect(() => {
-        if (currentSong && isOpen) {
-            setTitle(currentSong.title || '');
-            setArtist(currentSong.artist || '');
-            setYear(currentSong.year || '');
-            setYouTubeId(currentSong.youTubeId || '');
+        const shouldOpen = store.currentModal === CurrentModal.EDIT_SONG;
+        console.log("Modal useEffect:", {
+            shouldOpen,
+            currentModal: store.currentModal,
+            currentSong: store.currentSong,
+            currentIndex: store.currentSongIndex
+        });
+        
+        if (shouldOpen !== isModalOpen) {
+            setIsModalOpen(shouldOpen);
+            
+            if (shouldOpen && store.currentSong) {
+                setCurrentSong(store.currentSong);
+                setCurrentIndex(store.currentSongIndex);
+                
+                // Initialize form fields
+                setTitle(store.currentSong.title || '');
+                setArtist(store.currentSong.artist || '');
+                setYear(store.currentSong.year || '');
+                setYouTubeId(store.currentSong.youTubeId || '');
+                
+                console.log("Modal opened with song:", store.currentSong);
+            } else {
+                // Clear when closing
+                setCurrentSong(null);
+                setCurrentIndex(-1);
+                setTitle('');
+                setArtist('');
+                setYear('');
+                setYouTubeId('');
+            }
         }
-    }, [currentSong, isOpen]);
+    }, [store.currentModal, store.currentSong, store.currentSongIndex]);
 
-    if (!isOpen) {
+    // Don't render if modal is closed or no song
+    if (!isModalOpen || !currentSong) {
+        console.log("Modal not rendering:", { isModalOpen, hasSong: !!currentSong });
         return null;
     }
 
     const handleConfirm = () => {
+        console.log("Confirming edit for song:", currentIndex);
         const newSongData = {
             title: title.trim() || 'Untitled',
             artist: artist.trim() || 'Unknown',
@@ -47,8 +78,11 @@ export default function MUIEditSongModal() {
     };
 
     const handleCancel = () => {
+        console.log("Cancelling edit modal");
         store.hideModals();
     };
+
+    console.log("Rendering modal with:", { title, artist, year, youTubeId });
 
     return (
         <Box

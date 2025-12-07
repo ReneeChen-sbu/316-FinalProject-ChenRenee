@@ -431,7 +431,7 @@ const handleEditSong = (index) => {
           </Button>
         </Box>
       </Box>
-      {store.isEditSongModalOpen() && <MUIEditSongModal />}
+      {<MUIEditSongModal />}
     </Box>
   );
 }
