@@ -4,25 +4,42 @@ async function fetchJSON(path, options = {}) {
     const fullURL = `${baseURL}${path}`;
     console.log("DEBUG fetchJSON START:");
     console.log("  Full URL:", fullURL);
-    console.log("  Path:", path);
-    console.log("  Options:", options);
+    
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    console.log("  Token exists?", !!token);
+    if (token) {
+        console.log("  Token length:", token.length);
+        console.log("  Token (first 20 chars):", token.substring(0, 20) + "...");
+    }
+    
+    // Prepare headers
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    // Add Authorization header if token exists
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+        console.log("  Adding Authorization header with token");
+    }
     
     try {
         const response = await fetch(fullURL, {
             credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
+            headers: headers,
             ...options
         });
 
         console.log("DEBUG fetchJSON Response:");
         console.log("  Status:", response.status);
         console.log("  Status Text:", response.statusText);
-        console.log("  OK?", response.ok);
+        console.log("  Headers:", Object.fromEntries(response.headers.entries()));
         
         let data = null;
         try {
             const text = await response.text();
-            console.log("  Raw response text:", text.substring(0, 500)); // First 500 chars
+            console.log("  Raw response text:", text.substring(0, 500));
             
             if (text) {
                 data = JSON.parse(text);

@@ -410,30 +410,38 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = async function () {
         try {
-            let response;
+          console.log("loadIdNamePairs called", {
+            isLoggedIn: auth.loggedIn,
+            user: auth.user,
+            isGuest: auth.user?.isGuest,
+            userEmail: auth.user?.email
+          });
+          
+          let response;
+          
+          if (auth.loggedIn && !auth.user?.isGuest) {
+            console.log("User is logged in, getting user playlists");
+            response = await storeRequestSender.getPlaylistPairs();
+          } else {
+            console.log("Guest user, getting guest playlists");
+            response = await storeRequestSender.getGuestPlaylists();
+          }
+          
+          console.log("Server response:", response?.success);
+          
+          if (response.success) {
+            console.log('idNamePairs from server:', response.idNamePairs);
+            console.log('First playlist owner:', response.idNamePairs[0]?.ownerEmail);
             
-            // Check if user is logged in or guest
-            if (auth.loggedIn && !auth.user.isGuest) {
-                // Logged in user - get their playlists
-                response = await storeRequestSender.getPlaylistPairs();
-            } else {
-                // Guest - get public playlists
-                response = await storeRequestSender.getGuestPlaylists();
-            }
-            
-            if (response.success) {
-                console.log('idNamePairs from server:', response.idNamePairs);
-                storeReducer({
-                    type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
-                    payload: response.idNamePairs
-                });
-            } else {
-                console.log("FAILED TO GET THE LIST PAIRS");
-            }
+            storeReducer({
+              type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
+              payload: response.idNamePairs
+            });
+          }
         } catch (error) {
-            console.error("Error loading playlist pairs:", error);
+          console.error("Error loading playlist pairs:", error);
         }
-    }
+      }
 
     // THE FOLLOWING 5 FUNCTIONS ARE FOR COORDINATING THE DELETION
     // OF A LIST, WHICH INCLUDES USING A VERIFICATION MODAL. THE

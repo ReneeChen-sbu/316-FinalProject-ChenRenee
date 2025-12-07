@@ -9,14 +9,14 @@ const Song = require('../models/song-model');
 
 async function importData() {
     try {
-        console.log('🚀 Starting data import...');
+        console.log('Starting data import...');
         
         // Connect to MongoDB
         await mongoose.connect('mongodb://localhost:27017/playlister', {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
-        console.log('✅ Connected to MongoDB');
+        console.log('Connected to MongoDB');
 
         // JSON file path
         const dataPath = path.join(__dirname, '../public/data/playlisterdata.json');
@@ -25,21 +25,21 @@ async function importData() {
             throw new Error(`JSON file not found at: ${dataPath}`);
         }
         
-        console.log(`✅ Found JSON file at: ${dataPath}`);
+        console.log(`Found JSON file at: ${dataPath}`);
         
         // Read JSON file
         const jsonData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-        console.log('✅ Loaded JSON data');
-        console.log(`📊 Data contains keys:`, Object.keys(jsonData));
+        console.log('Loaded JSON data');
+        console.log(`Data contains keys:`, Object.keys(jsonData));
         
         // Clear existing data
-        console.log('\n🗑️  Clearing existing data...');
+        console.log('\nClearing existing data...');
         await User.deleteMany({});
         await Playlist.deleteMany({});
         await Song.deleteMany({});
         
         // 1. Import Users
-        console.log('\n👤 Importing users...');
+        console.log('\nImporting users...');
         const userMap = {}; // Map email to user ObjectId
         
         if (jsonData.users && jsonData.users.length > 0) {
@@ -65,7 +65,7 @@ async function importData() {
         const defaultUserId = Object.values(userMap)[0];
         
         // 2. First pass: Extract all unique songs
-        console.log('\n🎵 Extracting songs from playlists...');
+        console.log('\nExtracting songs from playlists...');
         const songMap = {}; // Map song key (title+artist+year) to ObjectId
         
         if (jsonData.playlists && jsonData.playlists.length > 0) {
@@ -106,7 +106,7 @@ async function importData() {
                     year: songInfo.year || new Date().getFullYear(),
                     youTubeId: songInfo.youTubeId || 'dQw4w9WgXcQ',
                     listenCount: 0,
-                    playlistCount: 0, // Will update later
+                    playlistCount: 0, 
                     addedBy: addedByUserId,
                     createdAt: new Date(),
                     updatedAt: new Date()
@@ -117,7 +117,7 @@ async function importData() {
                     songMap[key] = song._id;
                     importedCount++;
                     if (importedCount <= 10) {
-                        console.log(`   ✓ "${song.title}" by ${song.artist} (${song.year})`);
+                        console.log(`"${song.title}" by ${song.artist} (${song.year})`);
                     }
                 } catch (error) {
                     duplicateCount++;
@@ -145,7 +145,7 @@ async function importData() {
         }
         
         // 3. Import Playlists
-        console.log('\n📋 Importing playlists...');
+        console.log('\nImporting playlists...');
         let playlistCount = 0;
         let skippedCount = 0;
         
@@ -160,13 +160,15 @@ async function importData() {
                 }
                 
                 // Convert embedded songs to Song references
-                const songIds = [];
+                const songs = [];
                 if (playlistData.songs && playlistData.songs.length > 0) {
                     for (const songData of playlistData.songs) {
-                        const key = `${songData.title}|${songData.artist}|${songData.year}`;
-                        if (songMap[key]) {
-                            songIds.push(songMap[key]);
-                        }
+                        songs.push({
+                            title: songData.title || 'Untitled',
+                            artist: songData.artist || 'Unknown Artist',
+                            year: songData.year || new Date().getFullYear(),
+                            youTubeId: songData.youTubeId || 'dQw4w9WgXcQ'
+                        });
                     }
                 }
                 
@@ -178,14 +180,16 @@ async function importData() {
                     const playlist = new Playlist({
                         name: uniquePlaylistName,
                         owner: ownerId,
-                        songs: songIds,
-                        listenerCount: Math.floor(Math.random() * 1000), // Random listener count for demo
+                        songs: songs, // <-- now full song objects, not ObjectIds
+                        listenerCount: Math.floor(Math.random() * 1000),
                         published: true,
                         publishedDate: new Date(),
                         createdAt: new Date(),
                         updatedAt: new Date()
                     });
-                    
+                
+
+        
                     await playlist.save();
                     playlistCount++;
                     
@@ -216,14 +220,14 @@ async function importData() {
             }
         }
         
-        console.log('\n🎉 Data import completed successfully!');
-        console.log('📊 Summary:');
+        console.log('\nData import completed successfully!');
+        console.log('Summary:');
         console.log(`   Users: ${Object.keys(userMap).length}`);
         console.log(`   Songs: ${Object.keys(songMap).length}`);
         console.log(`   Playlists: ${playlistCount} imported, ${skippedCount} skipped`);
         
         // Create a test user for yourself (replace with your actual email)
-        console.log('\n🔧 Creating test user (you)...');
+        console.log('\nCreating test user (you)...');
         try {
             const testUser = new User({
                 userName: 'Ren',
@@ -234,26 +238,37 @@ async function importData() {
                 updatedAt: new Date()
             });
             await testUser.save();
-            console.log(`   ✓ Test user created: Ren (renee@chen.com)`);
+            console.log(` Test user created: Ren (renee@chen.com)`);
             
             // Create a test playlist for the test user
+            const sampleSongs =
+            (jsonData.playlists[0]?.songs || []).slice(0, 5).map(s => ({
+                title: s.title || 'Untitled',
+                artist: s.artist || 'Unknown Artist',
+                year: s.year || new Date().getFullYear(),
+                youTubeId: s.youTubeId || 'dQw4w9WgXcQ'
+            }));
+            
             const testPlaylist = new Playlist({
-                name: 'My Test Playlist',
-                owner: testUser._id,
-                songs: Object.values(songMap).slice(0, 5), // First 5 songs
-                listenerCount: 0,
-                published: true,
-                publishedDate: new Date()
+            name: 'My Test Playlist',
+            owner: testUser._id,
+            songs: sampleSongs,
+            listenerCount: 0,
+            published: true,
+            publishedDate: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
             });
+
             await testPlaylist.save();
-            console.log(`   ✓ Test playlist created with 5 songs`);
+            console.log(`  Test playlist created with 5 songs`);
             
         } catch (error) {
-            console.log(`   ⚠️  Test user already exists or error: ${error.message}`);
+            console.log(` Test user already exists or error: ${error.message}`);
         }
         
         // Verify data
-        console.log('\n🔍 Sample data:');
+        console.log('\nSample data:');
         const sampleUser = await User.findOne();
         const songCount = await Song.countDocuments();
         const playlistCountTotal = await Playlist.countDocuments();
@@ -267,15 +282,15 @@ async function importData() {
             console.log(`   Sample user "${sampleUser.userName}" has ${userPlaylists.length} playlists`);
         }
         
-        console.log('\n✅ Database is ready!');
-        console.log('👉 You can now run your server:');
+        console.log('\nDatabase is ready!');
+        console.log('You can now run your server:');
         console.log('   cd /Users/renee/316-FinalProject-Playlister/server');
         console.log('   node index.js');
         
         process.exit(0);
         
     } catch (error) {
-        console.error('\n❌ Import failed:', error.message);
+        console.error('\nImport failed:', error.message);
         console.error(error.stack);
         process.exit(1);
     }

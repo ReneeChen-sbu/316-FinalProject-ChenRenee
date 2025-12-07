@@ -40,14 +40,31 @@ export function getLoggedIn () {
 
 }
 
-export function loginUser(email, password) {
-    return fetchJSON('/login', {
+
+export async function loginUser(email, password) {
+    const response = await fetch(`${baseURL}/login`, {
         method: 'POST',
-        body: JSON.stringify({email, password})
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password })
     });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.token) {
+        // Save token to localStorage
+        localStorage.setItem('token', data.token);
+        console.log("Token saved to localStorage");
+    }
+    
+    return data;
 }
 
 export async function logoutUser() {
+    // Clear token from localStorage
+    localStorage.removeItem('token');
+    console.log("Token removed from localStorage");
+    
     const response = await fetch(`${baseURL}/logout/`, {
         method: 'GET',
         credentials: 'include'

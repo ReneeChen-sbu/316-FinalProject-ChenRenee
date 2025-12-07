@@ -11,7 +11,6 @@ import MUIErrorModal from './MUIErrorModal'
 import RegisterScreen from './RegisterScreen'
 import SongCard from './SongCard'
 import SplashScreen from './SplashScreen'
-import Statusbar from './Statusbar'
 import WorkspaceScreen from './WorkspaceScreen'
 import EditAccountScreen from './EditAccountScreen'
 
@@ -35,6 +34,5 @@ export {
     SongCard,
     RegisterScreen,
     SplashScreen,
-    Statusbar, 
     WorkspaceScreen,
     EditAccountScreen}

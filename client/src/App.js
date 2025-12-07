@@ -9,7 +9,6 @@ import AppBanner from './components/AppBanner';
 import HomeScreen from './components/HomeScreen';
 import LoginScreen from './components/LoginScreen';
 import RegisterScreen from './components/RegisterScreen';
-import Statusbar from './components/Statusbar';
 import WorkspaceScreen from './components/WorkspaceScreen';
 import SplashScreen from './components/SplashScreen';
 import EditAccountScreen from './components/EditAccountScreen';
@@ -20,6 +19,8 @@ import AuthContext from './auth';
 function AppContent() {
     const location = useLocation();
     const { auth } = useContext(AuthContext);
+
+    
     
     return (
         <Switch>
@@ -40,7 +41,7 @@ function AppContent() {
                     <>
                         <AppBanner />
                         <HomeScreen />
-                        <Statusbar />
+                    
                     </>
                 ) : (
                     <SplashScreen showFullScreen={false} />  

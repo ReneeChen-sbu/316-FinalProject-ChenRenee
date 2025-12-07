@@ -167,44 +167,58 @@ const getPlaylistById = async (req, res) => {
 // GET id-name pairs for logged-in user
 const getPlaylistPairs = async (req, res) => {
   try {
-      const userId = req.userId;
+    const userId = req.userId;
+    console.log('getPlaylistPairs called for userId:', userId);
 
-      if (!userId) {
-          return res.status(401).json({
-              success: false,
-              errorMessage: 'Not logged in'
-          });
-      }
-
-      // ONLY get playlists owned by this user
-      const playlists = await Playlist.find({ 
-          owner: userId,  // Only this user's playlists
-          published: true  // Only published playlists
-      })
-      .populate('owner', 'userName email')
-      .populate('songs')
-      .sort({ updatedAt: -1 });
-
-      const pairs = playlists.map(playlist => ({
-          _id: playlist._id,
-          name: playlist.name,
-          ownerName: playlist.owner.userName,
-          ownerEmail: playlist.owner.email,
-          songs: playlist.songs,
-          listenerCount: playlist.listenerCount || 0,
-          published: playlist.published ?? true
-      }));
-
-      return res.status(200).json({
-          success: true,
-          idNamePairs: pairs
+    if (!userId) {
+      console.log('No user ID, returning empty');
+      return res.status(401).json({
+        success: false,
+        errorMessage: 'Not logged in'
       });
+    }
+
+    // Get user to verify
+    const user = await User.findById(userId);
+    if (!user) {
+      console.log('User not found:', userId);
+      return res.status(404).json({
+        success: false,
+        errorMessage: 'User not found'
+      });
+    }
+    
+    console.log('User found:', user.email);
+
+    // ONLY get playlists owned by this user
+    const playlists = await Playlist.find({ 
+      owner: userId  // CRITICAL: Only this user's playlists
+    })
+    .populate('owner', 'userName email')
+    .sort({ updatedAt: -1 });
+
+    console.log(`Found ${playlists.length} playlists for user ${user.email}`);
+    
+    const pairs = playlists.map(playlist => ({
+      _id: playlist._id,
+      name: playlist.name,
+      ownerName: playlist.owner.userName,
+      ownerEmail: playlist.owner.email,
+      songs: playlist.songs || [],
+      listenerCount: playlist.listenerCount || 0,
+      published: playlist.published ?? true
+    }));
+
+    return res.status(200).json({
+      success: true,
+      idNamePairs: pairs
+    });
   } catch (err) {
-      console.error('getPlaylistPairs error:', err);
-      return res.status(500).json({
-          success: false,
-          errorMessage: 'Failed to fetch playlists'
-      });
+    console.error('getPlaylistPairs error:', err);
+    return res.status(500).json({
+      success: false,
+      errorMessage: 'Failed to fetch playlists'
+    });
   }
 };
 
