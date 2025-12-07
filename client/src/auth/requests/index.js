@@ -72,14 +72,15 @@ export async function logoutUser() {
     return { success: true };
 }
 
-export function registerUser(userName, email, password, passwordVerify) {
+export function registerUser(userName, email, password, passwordVerify, avatar = null) {
     return fetchJSON('/register', {
         method: 'POST',
         body: JSON.stringify({
             userName,
             email,
             password,
-            passwordVerify
+            passwordVerify,
+            avatar
         })
     });
 }

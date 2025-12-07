@@ -57,7 +57,7 @@ const createPlaylist = async (req, res) => {
     
     // Populate before returning
     const populated = await Playlist.findById(saved._id)
-      .populate('owner', 'userName email')
+      .populate('owner', 'userName email', 'userName email avatar')
       .populate('songs');
 
     return res.status(201).json({
@@ -194,14 +194,7 @@ const deletePlaylist = async (req, res) => {
 const getPlaylistById = async (req, res) => {
   try {
     const playlistId = req.params.id;
-    const userId = req.userId; // Get userId early for debugging
-    
-    console.log('SERVER: getPlaylistById called with:', {
-      playlistId,
-      userId,
-      hasUserId: !!userId,
-      params: req.params
-    });
+    console.log('SERVER: getPlaylistById called with ID:', playlistId);
     
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
         console.log('SERVER: Invalid playlist ID:', playlistId);
@@ -212,58 +205,46 @@ const getPlaylistById = async (req, res) => {
     }
 
     const playlist = await Playlist.findById(playlistId)
-      .populate('owner', 'userName email')
+      .populate('owner', 'userName email avatar') 
       .populate('songs');
 
     if (!playlist) {
-      console.log('SERVER: Playlist not found:', playlistId);
       return res.status(404).json({
         success: false,
         errorMessage: 'Playlist not found'
       });
     }
 
-    console.log('SERVER: Found playlist:', {
-      id: playlist._id,
-      name: playlist.name,
-      ownerId: playlist.owner?._id,
-      ownerEmail: playlist.owner?.email,
-      published: playlist.published,
-      userId
-    });
-
     // Check if user can access this playlist
+    const userId = req.userId;
+    
     if (!playlist.published) {
-      console.log('SERVER: Playlist is private, checking access...');
-      
       if (!userId) {
-        console.log('SERVER: No userId, denying access');
         return res.status(401).json({
           success: false,
           errorMessage: 'Authentication required'
         });
       }
-      
-      console.log('SERVER: Comparing owner:', {
-        ownerId: playlist.owner?._id?.toString(),
-        userId: userId.toString(),
-        match: playlist.owner?._id?.toString() === userId.toString()
-      });
-      
-      if (!playlist.owner || playlist.owner._id.toString() !== userId) {
-        console.log('SERVER: Access denied - not the owner');
+      if (playlist.owner.toString() !== userId) {
         return res.status(403).json({
           success: false,
           errorMessage: 'Access denied - playlist is private'
         });
       }
-      
-      console.log('SERVER: Access granted - user is owner');
     }
 
     return res.status(200).json({
       success: true,
-      playlist
+      playlist: {
+        _id: playlist._id,
+        name: playlist.name,
+        ownerName: playlist.owner?.userName,
+        ownerEmail: playlist.owner?.email,
+        ownerAvatar: playlist.owner?.avatar, 
+        songs: playlist.songs || [],
+        listenerCount: playlist.listenerCount || 0,
+        published: playlist.published ?? true
+      }
     });
   } catch (err) {
     console.error('getPlaylistById error:', err);
@@ -274,6 +255,7 @@ const getPlaylistById = async (req, res) => {
   }
 };
 
+
 // GET id-name pairs for logged-in user
 const getPlaylistPairs = async (req, res) => {
   try {
@@ -281,41 +263,66 @@ const getPlaylistPairs = async (req, res) => {
     console.log('getPlaylistPairs called for userId:', userId);
 
     if (!userId) {
+      console.log('No user ID, returning empty');
       return res.status(401).json({
         success: false,
         errorMessage: 'Not logged in'
       });
     }
 
-    // Verify user exists
+    // Get user to verify
     const user = await User.findById(userId);
     if (!user) {
+      console.log('User not found:', userId);
       return res.status(404).json({
         success: false,
         errorMessage: 'User not found'
       });
     }
+    
+    console.log('User found:', user.email);
 
+    // Get playlists owned by this user AND public playlists from others
     const playlists = await Playlist.find({
       $or: [
-        { owner: userId },       // my playlists
-        { published: true }      // everyone’s public playlists
+        { owner: userId }, // User's own playlists
+        { published: true } // Public playlists from others
       ]
     })
-      .populate('owner', 'userName email')
-      .sort({ updatedAt: -1 });
+    .populate('owner', 'userName email avatar') 
+    .populate('songs')
+    .sort({ updatedAt: -1 });
 
-    console.log(`Found ${playlists.length} visible playlists for user ${user.email}`);
+    console.log(`Found ${playlists.length} playlists for user ${user.email}`);
+    
+    const pairs = playlists.map(playlist => {
+      console.log('Playlist owner data:', {
+        ownerId: playlist.owner?._id,
+        ownerName: playlist.owner?.userName,
+        ownerEmail: playlist.owner?.email,
+        ownerAvatar: playlist.owner?.avatar,
+        hasAvatar: !!playlist.owner?.avatar,
+        avatarLength: playlist.owner?.avatar?.length
+      });
+      
+      return {
+        _id: playlist._id,
+        name: playlist.name,
+        ownerName: playlist.owner?.userName || 'Unknown',
+        ownerEmail: playlist.owner?.email || 'unknown@example.com',
+        ownerAvatar: playlist.owner?.avatar || null, // Include avatar
+        songs: playlist.songs || [],
+        listenerCount: playlist.listenerCount || 0,
+        published: playlist.published ?? true
+      };
+    });
 
-    const pairs = playlists.map(playlist => ({
-      _id: playlist._id,
-      name: playlist.name,
-      ownerName: playlist.owner?.userName || 'Unknown',
-      ownerEmail: playlist.owner?.email || 'unknown@example.com',
-      songs: playlist.songs || [],
-      listenerCount: playlist.listenerCount || 0,
-      published: playlist.published ?? true
-    }));
+    console.log('Sending pairs with avatars:', pairs.map(p => ({
+      name: p.name,
+      ownerName: p.ownerName,
+      hasAvatar: !!p.ownerAvatar,
+      avatarLength: p.ownerAvatar?.length
+    })));
 
     return res.status(200).json({
       success: true,
@@ -337,7 +344,7 @@ const getPlaylists = async (req, res) => {
   try {
     const userId = req.userId;
     const playlists = await Playlist.find({ owner: userId })
-      .populate('owner', 'userName email')
+      .populate('owner', 'userName email', 'userName email avatar')
       .populate('songs')
       .sort({ updatedAt: -1 });
 
@@ -454,7 +461,7 @@ const updatePlaylist = async (req, res) => {
     
     // Populate before returning
     const populated = await Playlist.findById(updated._id)
-      .populate('owner', 'userName email')
+      .populate('owner', 'userName email', 'userName email avatar')
       .populate('songs');
 
     console.log("Successfully updated playlist");
@@ -479,19 +486,39 @@ const getGuestPlaylists = async (req, res) => {
     console.log('SERVER: getGuestPlaylists called');
 
     const playlists = await Playlist.find({ published: true })
-      .populate('owner', 'userName email')
+      .populate('owner', 'userName email avatar') 
       .populate('songs')
       .sort({ updatedAt: -1 });
 
-    const pairs = playlists.map(playlist => ({
-      _id: playlist._id,
-      name: playlist.name,
-      ownerName: playlist.owner?.userName || 'Unknown',
-      ownerEmail: playlist.owner?.email || 'unknown@example.com',
-      songs: playlist.songs || [],
-      listenerCount: playlist.listenerCount || 0,
-      published: playlist.published ?? true
-    }));
+    console.log(`Found ${playlists.length} public playlists`);
+    
+    const pairs = playlists.map(playlist => {
+      console.log('Guest playlist owner data:', {
+        ownerName: playlist.owner?.userName,
+        ownerEmail: playlist.owner?.email,
+        ownerAvatar: playlist.owner?.avatar,
+        hasAvatar: !!playlist.owner?.avatar,
+        avatarLength: playlist.owner?.avatar?.length
+      });
+      
+      return {
+        _id: playlist._id,
+        name: playlist.name,
+        ownerName: playlist.owner?.userName || 'Unknown',
+        ownerEmail: playlist.owner?.email || 'unknown@example.com',
+        ownerAvatar: playlist.owner?.avatar || null, 
+        songs: playlist.songs || [],
+        listenerCount: playlist.listenerCount || 0,
+        published: playlist.published ?? true
+      };
+    });
+
+    console.log('Sending guest pairs with avatars:', pairs.slice(0, 3).map(p => ({
+      name: p.name,
+      ownerName: p.ownerName,
+      hasAvatar: !!p.ownerAvatar,
+      avatarLength: p.ownerAvatar?.length
+    })));
 
     return res.status(200).json({
       success: true,
@@ -505,7 +532,6 @@ const getGuestPlaylists = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   createPlaylist,

@@ -123,21 +123,30 @@ function AuthContextProvider(props) {
     }
     
 
-    auth.registerUser = async function(userName, email, password, passwordVerify) {
+    auth.registerUser = async function(userName, email, password, passwordVerify, avatar = null) {
         console.log("REGISTERING USER");
-        try{   
-            const data = await authRequestSender.registerUser(userName, email, password, passwordVerify);
+        try {   
+            const data = await authRequestSender.registerUser(
+                userName,
+                email,
+                password,
+                passwordVerify,
+                avatar          
+            );
+    
+            // Registration successful, now automatically log them in
             authReducer({
                 type: AuthActionType.REGISTER_USER,
                 payload: {
-                    user: data.user,
+                    user: data.user,       
                     loggedIn: true,
                     errorMessage: null
                 }
             });
-            history.push("/login");
-            auth.loginUser(email, password);
-
+    
+            // Navigate to home instead of login
+            history.push("/home");
+    
         } catch (error) {
             console.error("Register failed:", error);
             authReducer({
@@ -149,8 +158,8 @@ function AuthContextProvider(props) {
                 }
             });
         }
-    }
-
+    };
+    
     auth.loginUser = async function(email, password) {
         try {
             const data = await authRequestSender.loginUser(email, password);
@@ -163,7 +172,8 @@ function AuthContextProvider(props) {
                     errorMessage: null
                 }
             });
-            history.push("/home");
+            auth.getLoggedIn();
+            history.push("/home"); // This should work if login succeeds
         } catch (error) {
             console.error("Login failed:", error);
             authReducer({

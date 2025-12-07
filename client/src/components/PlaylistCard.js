@@ -52,7 +52,6 @@ export default function PlaylistCard({ idNamePair }) {
   const handleEdit = (e) => {
     e.stopPropagation();
     if (!playlistId) return;
-    console.log('Edit clicked for playlist:', playlistId);
     store.setCurrentList(playlistId, { navigate: false });
     setEditOpen(true);
   };
@@ -69,7 +68,6 @@ export default function PlaylistCard({ idNamePair }) {
   const handlePlay = (e) => {
     e.stopPropagation();
     if (!playlistId) return;
-    console.log('Play playlist', playlistId);
     setPlayOpen(true);
   };
 
@@ -111,7 +109,7 @@ export default function PlaylistCard({ idNamePair }) {
       ? resolvedOwnerName[0].toUpperCase()
       : 'U';
 
-  console.log('PlaylistCard received:', idNamePair);
+
 
   return (
     <>
@@ -320,11 +318,15 @@ export default function PlaylistCard({ idNamePair }) {
 
       {/* PLAY MODAL */}
       <PlayPlaylistModal
-        open={playOpen}
-        onClose={() => setPlayOpen(false)}
-        playlist={idNamePair}
-        initialIndex={0}
-      />
+      open={playOpen}
+      onClose={() => setPlayOpen(false)}
+      playlist={{
+        ...idNamePair,
+        ownerAvatar: avatarSrc   
+      }}
+      initialIndex={0}
+    />
+
 
       {/* EDIT MODAL */}
       {playlistId && (

@@ -15,8 +15,13 @@ const UserSchema = new mongoose.Schema({
         required: true
     },
     avatar: {
-      type: String, 
-      default: null
+        type: String, 
+        default: null
+    },
+  
+    isGuest: {
+        type: Boolean,
+        default: false
     },
     createdAt: {
         type: Date,

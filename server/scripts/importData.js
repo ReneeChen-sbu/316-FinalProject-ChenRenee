@@ -9,7 +9,6 @@ const Song = require('../models/song-model');
 
 async function importData() {
     try {
-        console.log('Starting data import...');
         
         // Connect to MongoDB
         await mongoose.connect('mongodb://localhost:27017/playlister', {
@@ -25,15 +24,12 @@ async function importData() {
             throw new Error(`JSON file not found at: ${dataPath}`);
         }
         
-        console.log(`Found JSON file at: ${dataPath}`);
+  
         
         // Read JSON file
         const jsonData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-        console.log('Loaded JSON data');
-        console.log(`Data contains keys:`, Object.keys(jsonData));
-        
+
         // Clear existing data
-        console.log('\nClearing existing data...');
         await User.deleteMany({});
         await Playlist.deleteMany({});
         await Song.deleteMany({});
@@ -55,10 +51,10 @@ async function importData() {
                 
                 await user.save();
                 userMap[user.email.toLowerCase()] = user._id;
-                console.log(`   ✓ ${user.userName} (${user.email})`);
+                console.log(`${user.userName} (${user.email})`);
             }
         } else {
-            console.log('⚠️  No users found in JSON');
+            console.log('No users found in JSON');
         }
         
         // Get first user ID for fallback
@@ -201,13 +197,13 @@ async function importData() {
                     }
                     
                     if (playlistCount <= 10) {
-                        console.log(`   ✓ "${playlist.name}" with ${songIds.length} songs`);
+                        console.log(`"${playlist.name}" with ${songIds.length} songs`);
                     }
                     
                 } catch (error) {
                     skippedCount++;
                     if (skippedCount <= 5) {
-                        console.log(`   ⚠️  Skipping: "${playlistName}" - ${error.message}`);
+                        console.log(`Skipping: "${playlistName}" - ${error.message}`);
                     }
                 }
             }
@@ -281,11 +277,7 @@ async function importData() {
             const userPlaylists = await Playlist.find({ owner: sampleUser._id });
             console.log(`   Sample user "${sampleUser.userName}" has ${userPlaylists.length} playlists`);
         }
-        
-        console.log('\nDatabase is ready!');
-        console.log('You can now run your server:');
-        console.log('   cd /Users/renee/316-FinalProject-Playlister/server');
-        console.log('   node index.js');
+    
         
         process.exit(0);
         

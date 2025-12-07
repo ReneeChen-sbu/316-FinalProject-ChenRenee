@@ -12,6 +12,16 @@ import SkipPreviousIcon from '@mui/icons-material/SkipPrevious';
 import SkipNextIcon from '@mui/icons-material/SkipNext';
 
 export default function PlayPlaylistModal({ open, onClose, playlist, initialIndex = 0 }) {
+  console.log('PlayPlaylistModal received playlist:', {
+    name: playlist?.name,
+    ownerEmail: playlist?.ownerEmail,
+    ownerAvatar: playlist?.ownerAvatar,
+    hasOwnerAvatar: !!playlist?.ownerAvatar,
+    ownerAvatarValue: playlist?.ownerAvatar?.substring(0, 30),
+    owner: playlist?.owner,
+    allProps: playlist
+  });
+
   const songs = playlist?.songs || [];
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,6 +37,33 @@ export default function PlayPlaylistModal({ open, onClose, playlist, initialInde
   if (!playlist) return null;
 
   const currentSong = songs[currentIndex];
+
+  // Get owner information from playlist
+  const ownerName = playlist.ownerName || 
+                   (playlist.ownerEmail ? playlist.ownerEmail.split('@')[0] : 'Unknown User');
+  
+  // Get owner avatar - check different possible sources
+  // IMPORTANT: Check the exact property names your backend is sending
+  const ownerAvatar = playlist.ownerAvatar || 
+                     (playlist.owner && playlist.owner.avatar) || 
+                     playlist.avatar || 
+                     null;
+  
+  console.log('Avatar debug:', {
+    ownerAvatar,
+    playlistOwnerAvatar: playlist.ownerAvatar,
+    playlistOwner: playlist.owner,
+    playlistOwnerAvatarType: typeof playlist.ownerAvatar,
+    playlistOwnerAvatarLength: playlist.ownerAvatar?.length
+  });
+
+  // Get playlist name
+  const playlistName = playlist.name || 'Untitled Playlist';
+
+  // Get initial for avatar if no image
+  const ownerInitial = ownerName && ownerName.length > 0 
+    ? ownerName[0].toUpperCase() 
+    : 'U';
 
   const handlePrev = () => {
     if (currentIndex > 0) {
@@ -113,23 +150,21 @@ export default function PlayPlaylistModal({ open, onClose, playlist, initialInde
         >
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, gap: 1.5 }}>
             <Avatar
+              src={ownerAvatar || undefined}
               sx={{
                 width: 40,
                 height: 40,
-                backgroundColor: '#4fc3f7',
+                backgroundColor: ownerAvatar ? 'transparent' : '#4fc3f7',
               }}
             >
-              🎧
+              {!ownerAvatar && ownerInitial}
             </Avatar>
             <Box>
               <Typography sx={{ fontWeight: 'bold', fontSize: 16 }}>
-                {playlist.name || 'Untitled Playlist'}
+                {playlistName}
               </Typography>
               <Typography sx={{ fontSize: 13, color: '#666' }}>
-                {playlist.ownerName ||
-                  (playlist.ownerEmail
-                    ? playlist.ownerEmail.split('@')[0]
-                    : 'Unknown User')}
+                {ownerName}
               </Typography>
             </Box>
           </Box>

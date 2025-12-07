@@ -15,7 +15,7 @@ async function fillCollection(collection, collectionName, data) {
         let doc = new collection(data[i]);
         await doc.save();
     }
-    console.log(collectionName + " filled");
+
 }
 
 async function resetMongo() {

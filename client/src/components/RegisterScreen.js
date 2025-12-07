@@ -13,10 +13,6 @@ export default function RegisterScreen() {
     const history = useHistory(); // Changed from useNavigate to useHistory
     const profileImageInputRef = useRef(null);
 
-    // Profile picture dimensions
-    const PROFILE_WIDTH = 100;
-    const PROFILE_HEIGHT = 100;
-
     // Form state with different field names
     const [registrationInfo, setRegistrationInfo] = useState({
         userName: '',
@@ -139,14 +135,7 @@ export default function RegisterScreen() {
 
             fileReader.onload = (readEvent) => {
                 imageElement.onload = () => {
-                    // Check specific dimensions
-                    if (imageElement.width !== PROFILE_WIDTH || imageElement.height !== PROFILE_HEIGHT) {
-                        setValidationMessages(prev => ({
-                            ...prev,
-                            profilePicture: `Image must be precisely ${PROFILE_WIDTH}x${PROFILE_HEIGHT} pixels`
-                        }));
-                        return;
-                    }
+        
 
                     // Valid image - store as base64
                     setProfilePicture(readEvent.target.result);
@@ -196,21 +185,18 @@ export default function RegisterScreen() {
           return;
         }
       
-        // Process registration 
         try {
           await auth.registerUser(
             registrationInfo.userName.trim(),
             registrationInfo.emailAddress,
             registrationInfo.password,
-            registrationInfo.confirmPassword
+            registrationInfo.confirmPassword,
+            profilePicture        
           );
           
-          // If we get here without error, registration was successful. The auth.registerUser will automatically redirect to /login
-        
-          
+
         } catch (error) {
           console.error('Registration error:', error);
-          
           
           if (auth.errorMessage) {
             const errorMsg = auth.errorMessage;
@@ -226,14 +212,14 @@ export default function RegisterScreen() {
               }));
             }
           } else if (error.message) {
-            // Fallback to the caught error
             setValidationMessages(prev => ({
               ...prev,
               emailAddress: error.message
             }));
           }
         }
-      };
+    };
+    
 
 
     const handleReturnHome = () => {
@@ -353,17 +339,7 @@ export default function RegisterScreen() {
                                 >
                                     Select
                                 </Button>
-                                <Typography 
-                                    variant="caption" 
-                                    sx={{ 
-                                        mt: 0.5, 
-                                        color: '#666',
-                                        textAlign: 'center',
-                                        fontSize: '0.65rem'
-                                    }}
-                                >
-                                    {PROFILE_WIDTH}x{PROFILE_HEIGHT}px
-                                </Typography>
+                            
                                 <input
                                     type="file"
                                     ref={profileImageInputRef}

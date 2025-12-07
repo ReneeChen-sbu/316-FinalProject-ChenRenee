@@ -329,26 +329,6 @@ export default function EditAccountScreen() {
                         >
                             Select
                         </Button>
-                        {avatarPreview && (
-                            <Button
-                                size="small"
-                                onClick={() => {
-                                    setAvatarPreview(null);
-                                    setAvatarBase64(null);
-                                    if (fileInputRef.current) {
-                                        fileInputRef.current.value = '';
-                                    }
-                                }}
-                                sx={{
-                                    color: '#666',
-                                    textTransform: 'none',
-                                    fontSize: '0.7rem',
-                                    mt: 0.5
-                                }}
-                            >
-                                Remove
-                            </Button>
-                        )}
                     </Box>
 
                     {/* Form Fields */}

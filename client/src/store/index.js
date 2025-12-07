@@ -17,7 +17,7 @@ import AuthContext from '../auth'
 
 // THIS IS THE CONTEXT WE'LL USE TO SHARE OUR STORE
 export const GlobalStoreContext = createContext({});
-console.log("create GlobalStoreContext");
+
 
 // THESE ARE ALL THE TYPES OF UPDATES TO OUR GLOBAL
 // DATA STORE STATE THAT CAN BE PROCESSED
@@ -69,11 +69,11 @@ function GlobalStoreContextProvider(props) {
     });
     const history = useHistory();
 
-    console.log("inside useGlobalStore");
+
 
     // SINCE WE'VE WRAPPED THE STORE IN THE AUTH CONTEXT WE CAN ACCESS THE USER HERE
     const { auth } = useContext(AuthContext);
-    console.log("auth: " + auth);
+
 
     // HERE'S THE DATA STORE'S REDUCER, IT MUST
     // HANDLE EVERY TYPE OF STATE CHANGE
@@ -111,7 +111,6 @@ function GlobalStoreContextProvider(props) {
             }
             // CREATE A NEW LIST
             case GlobalStoreActionType.CREATE_NEW_LIST: {
-                console.log("Reducer: Creating new list, payload:", payload);
                 
                 // Make sure we're adding to existing playlists, not replacing
                 const newPairs = [...store.idNamePairs];
@@ -130,7 +129,7 @@ function GlobalStoreContextProvider(props) {
                     });
                 }
                 
-                console.log("New pairs array:", newPairs);
+               
                 
                 return setStore({
                     currentModal: CurrentModal.NONE,
@@ -310,7 +309,7 @@ function GlobalStoreContextProvider(props) {
 
     // THIS FUNCTION PROCESSES CHANGING A LIST NAME
     store.changeListName = function (id, newName) {
-        console.log("changeListName called with id:", id, "newName:", newName);
+     
     
         async function asyncChangeListName(id) {
             // 1. Get the full playlist
@@ -372,7 +371,7 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION CREATES A NEW LIST
     store.createNewList = async function () {
         let newListName = "Untitled" + store.newListCounter;
-        console.log("Creating playlist with name:", newListName, "for user:", auth.user?.email);
+
         
         try {
             const response = await storeRequestSender.createPlaylist(newListName, [], auth.user?.email);

@@ -17,33 +17,28 @@ getLoggedIn = async (req, res) => {
         }
 
         const user = await db.getUserById(verified.id);
-
-        if (!user) {
-            return res.status(200).json({
-                loggedIn: false,
-                user: null,
-                errorMessage: "User not found"
-            });
-        }
+        
+        console.log('DEBUG getLoggedIn user from DB:', {
+            id: user?._id,
+            userName: user?.userName,
+            avatar: user?.avatar?.substring(0, 30), // Check avatar field
+            avatarImage: user?.avatarImage, // Check avatarImage field
+            allFields: Object.keys(user || {})
+        });
 
         return res.status(200).json({
             loggedIn: true,
             user: {
-                _id: user._id,
-                userName: user.userName || user.firstName || user.email,
+                userName: user.userName,
                 email: user.email,
-                avatar: user.avatar || null, // ADD THIS
+                avatar: user.avatar, // Make sure this is the Base64 string
                 isGuest: user.isGuest || false
             }
         });
 
     } catch (err) {
         console.log("getLoggedIn error: " + err);
-        res.status(500).json({
-            loggedIn: false,
-            user: null,
-            errorMessage: "Server error"
-        });
+        res.status(500).json(false);
     }
 };
 
@@ -59,7 +54,7 @@ loginUser = async (req, res) => {
         }
 
         const existingUser = await db.getUserByEmail(email);
-        console.log("existingUser: " + existingUser);
+        console.log("existingUser: ", existingUser);
         if (!existingUser) {
             return res
                 .status(401)
@@ -88,24 +83,32 @@ loginUser = async (req, res) => {
             id: existingUser._id || existingUser.id,
             email: existingUser.email
         });
-        console.log(token);
+        console.log("Generated token:", token);
 
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            path: "/"
-        }).status(200).json({
-            success: true,
-            user: {
-                userName: existingUser.userName || existingUser.firstName || existingUser.email,
-                email: existingUser.email
-            }
-        });
+
+        return res
+            .cookie("token", token, {
+                httpOnly: true,
+                secure: false,
+                sameSite: "lax",
+                path: "/"
+            })
+            .status(200)
+            .json({
+                success: true,
+                token: token, // Send token in response body
+                user: {
+                    _id: existingUser._id,
+                    userName: existingUser.userName,
+                    email: existingUser.email,
+                    avatar: existingUser.avatar || null,
+                    isGuest: existingUser.isGuest || false
+                }
+            });
 
     } catch (error) {
         console.error('Login error in controller:', error);
-        res.status(500).json({ error: error.message });
+        return res.status(500).json({ error: error.message });
     }
 };
 
@@ -121,83 +124,78 @@ logoutUser = async (req, res) => {
 registerUser = async (req, res) => {
     console.log("REGISTERING USER IN BACKEND");
     try {
-        const { userName, email, password, passwordVerify } = req.body;
-        console.log("create user:", userName, email, password, passwordVerify);
-
-        if (!userName || !email || !password || !passwordVerify) {
-            return res
-                .status(400)
-                .json({ errorMessage: "Please enter all required fields." });
-        }
-
-        if (password.length < 8) {
-            return res
-                .status(400)
-                .json({
-                    errorMessage: "Please enter a password of at least 8 characters."
-                });
-        }
-
-        if (password !== passwordVerify) {
-            return res
-                .status(400)
-                .json({
-                    errorMessage: "Please enter the same password twice."
-                });
-        }
-
-        const existingUser = await db.getUserByEmail(email);
-        console.log("existingUser: " + existingUser);
-        if (existingUser) {
-            return res
-                .status(400)
-                .json({
-                    success: false,
-                    errorMessage: "An account with this email address already exists."
-                });
-        }
-
-        const saltRounds = 10;
-        const salt = await bcrypt.genSalt(saltRounds);
-        const passwordHash = await bcrypt.hash(password, salt);
-        console.log("passwordHash: " + passwordHash);
-
-        // IMPORTANT: use userName, not firstName
-        const savedUser = await db.createUser({
-            userName,
-            email,
-            passwordHash
+      const { userName, email, password, passwordVerify, avatar } = req.body;
+      console.log("create user:", userName, email, password, passwordVerify, !!avatar);
+  
+   
+      if (!userName || !email || !password || !passwordVerify) {
+        return res.status(400).json({ errorMessage: "Please enter all required fields." });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({
+          errorMessage: "Please enter a password of at least 8 characters."
         });
-
-        console.log("new user saved:", savedUser._id);
-
-        const token = auth.signToken({
-            id: savedUser._id || savedUser.id,
-            email: savedUser.email
+      }
+      if (password !== passwordVerify) {
+        return res.status(400).json({
+          errorMessage: "Please enter the same password twice."
         });
-
-        console.log("token:", token);
-
-        await res.cookie("token", token, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            path: "/"
-        }).status(200).json({
-            success: true,
-            user: {
-                userName: savedUser.userName,
-                email: savedUser.email
-            }
+      }
+  
+      const existingUser = await db.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          errorMessage: "An account with this email address already exists."
         });
+      }
+  
+      const saltRounds = 10;
+      const salt = await bcrypt.genSalt(saltRounds);
+      const passwordHash = await bcrypt.hash(password, salt);
+  
 
-        console.log("token sent");
-
+      let avatarToSave = null;
+      if (avatar && typeof avatar === 'string' && avatar.startsWith('data:image/')) {
+        avatarToSave = avatar;
+      }
+  
+      const savedUser = await db.createUser({
+        userName,
+        email,
+        passwordHash,
+        avatar: avatarToSave
+      });
+  
+      const token = auth.signToken({
+        id: savedUser._id || savedUser.id,
+        email: savedUser.email
+      });
+  
+      await res
+        .cookie("token", token, {
+          httpOnly: true,
+          secure: false,
+          sameSite: "lax",
+          path: "/"
+        })
+        .status(200)
+        .json({
+          success: true,
+          user: {
+            _id: savedUser._id,
+            userName: savedUser.userName,
+            email: savedUser.email,
+            avatar: savedUser.avatar || null,
+            isGuest: savedUser.isGuest || false
+          }
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).send();
+      console.error(err);
+      res.status(500).send();
     }
-};
+  };
+  
 
 updateUserProfile = async (req, res) => {
     try {
