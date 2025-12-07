@@ -636,33 +636,51 @@ function GlobalStoreContextProvider(props) {
     store.addUpdateSongTransaction = function (index, newSongData) {
         let song = store.currentList.songs[index];
         if (!song) return;
-        
+    
         let oldSongData = {
             title: song.title,
             artist: song.artist,
             year: song.year,
             youTubeId: song.youTubeId
         };
-        
-        let transaction = new UpdateSong_Transaction(this, index, oldSongData, newSongData);        
-        tps.processTransaction(transaction);
-        
-        // Force an update to trigger re-render
-        store.updateCurrentList();
-    }
-    store.updateCurrentList = function() {
+    
+        let transaction = new UpdateSong_Transaction(this, index, oldSongData, newSongData);
+        tps.processTransaction(transaction);   // this will call store.updateSong internally
+    };
+    
+    store.updateCurrentList = function () {
         async function asyncUpdateCurrentList() {
-            const listId = store.currentList._id ?? store.currentList.id;
-            const response = await storeRequestSender.updatePlaylistById(listId, store.currentList);
-            if (response.success) {
-                storeReducer({
-                    type: GlobalStoreActionType.SET_CURRENT_LIST,
-                    payload: store.currentList
-                });
+            if (!store.currentList) {
+                console.warn("updateCurrentList called with no currentList");
+                return;
             }
+    
+            const listId = store.currentList._id ?? store.currentList.id;
+            const listCopy = {
+                ...store.currentList,
+                songs: [...store.currentList.songs]
+            };
+    
+            try {
+                const response = await storeRequestSender.updatePlaylistById(listId, listCopy);
+                if (!response.success) {
+                    console.error("updatePlaylistById failed:", response.errorMessage);
+                }
+            } catch (err) {
+                console.error("Error calling updatePlaylistById:", err);
+            }
+    
+            // ALWAYS update React state so UI reflects the latest songs,
+            // even if the server rejected the change (e.g., Access denied).
+            storeReducer({
+                type: GlobalStoreActionType.SET_CURRENT_LIST,
+                payload: listCopy
+            });
         }
+    
         asyncUpdateCurrentList();
-    }
+    };
+    
     store.undo = function () {
         tps.undoTransaction();
     }

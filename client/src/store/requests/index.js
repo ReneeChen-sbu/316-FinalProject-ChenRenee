@@ -96,10 +96,14 @@ export function getGuestPlaylists() {
 }
 
 // UPDATE playlist
+// UPDATE playlist - FIXED
 export function updatePlaylistById(id, playlist) {
+    console.log("DEBUG: Updating playlist with ID:", id);
+    console.log("DEBUG: Playlist data:", playlist);
+    
     return fetchJSON(`/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ playlist })
+        body: JSON.stringify(playlist)  // REMOVE the extra wrapper
     });
 }
 

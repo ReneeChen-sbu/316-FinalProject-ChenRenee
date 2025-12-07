@@ -35,10 +35,10 @@ export default function EditPlaylistModal({ open, onClose }) {
   const [playlistName, setPlaylistName] = useState('');
 
   useEffect(() => {
-    if (playlist && isOpen) {
-      setPlaylistName(playlist.name || '');
+    if (store.currentList) {
+      setPlaylistName(store.currentList.name || '');
     }
-  }, [playlist, isOpen]);
+  }, [store.currentList?._id, store.currentList?.name, isOpen]);
 
   if (!isOpen || !playlist) return null;
 
@@ -64,13 +64,6 @@ export default function EditPlaylistModal({ open, onClose }) {
     saveTitleIfNeeded();
   };
 
-  const handleTitleSave = () => {
-    const trimmed = playlistName.trim();
-    if (!trimmed || trimmed === playlist.name) return;
-  
-    const listId = playlist._id || playlist.id;
-    store.changeListName(listId, trimmed);
-  };
   
 
   const handleTitleKeyDown = (e) => {
@@ -80,13 +73,12 @@ export default function EditPlaylistModal({ open, onClose }) {
       e.target.blur();
     }
   };
-
+  
   const handleClearTitle = () => {
     setPlaylistName('');
   };
 
   const handleClose = () => {
-    // Save name one last time, then let parent close the modal
     saveTitleIfNeeded();
     if (onClose) onClose();
   };
