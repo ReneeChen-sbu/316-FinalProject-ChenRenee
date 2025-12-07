@@ -1,154 +1,101 @@
-const baseURL = 'http://localhost:4000/api/playlists';
+// src/store/requests/index.js
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000';
 
 async function fetchJSON(path, options = {}) {
-    const fullURL = `${baseURL}${path}`;
-    console.log("DEBUG fetchJSON START:");
-    console.log("  Full URL:", fullURL);
-    
-    // Get token from localStorage
+    const url = `${API_BASE_URL}${path}`;
+    console.log('DEBUG fetchJSON: requesting', url);
+  
     const token = localStorage.getItem('token');
-    console.log("  Token exists?", !!token);
-    if (token) {
-        console.log("  Token length:", token.length);
-        console.log("  Token (first 20 chars):", token.substring(0, 20) + "...");
-    }
-    
-    // Prepare headers
+  
     const headers = {
-        'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(options.headers || {}),
     };
-    
-    // Add Authorization header if token exists
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-        console.log("  Adding Authorization header with token");
+  
+    const response = await fetch(url, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+  
+    const text = await response.text();
+    const contentType = response.headers.get('content-type') || '';
+  
+    console.log('DEBUG fetchJSON response status:', response.status);
+    console.log('DEBUG fetchJSON content-type:', contentType);
+    console.log('DEBUG fetchJSON raw text (first 200 chars):', text.slice(0, 200));
+  
+    let data = {};
+    if (contentType.includes('application/json')) {
+      data = text ? JSON.parse(text) : {};
+    } else {
+      // This is *exactly* your "<!DOCTYPE..." situation
+      console.error('Expected JSON but got non-JSON response body.');
+      throw new Error(
+        `Server returned non-JSON response (status ${response.status}). Check URL/path.`
+      );
     }
-    
-    try {
-        const response = await fetch(fullURL, {
-            credentials: 'include',
-            headers: headers,
-            ...options
-        });
-
-        console.log("DEBUG fetchJSON Response:");
-        console.log("  Status:", response.status);
-        console.log("  Status Text:", response.statusText);
-        console.log("  Headers:", Object.fromEntries(response.headers.entries()));
-        
-        let data = null;
-        try {
-            const text = await response.text();
-            console.log("  Raw response text:", text.substring(0, 500));
-            
-            if (text) {
-                data = JSON.parse(text);
-                console.log("  Parsed JSON:", data);
-            } else {
-                console.log("  Empty response body");
-                data = {};
-            }
-        } catch (jsonErr) {
-            console.error("  Failed to parse JSON:", jsonErr);
-            data = {};
-        }
-
-        if (!response.ok) {
-            const errorMsg = data.errorMessage || data.error || 'Request failed';
-            console.error("DEBUG fetchJSON Error:", errorMsg);
-            throw new Error(errorMsg);
-        }
-        
-        console.log("DEBUG fetchJSON Success");
-        return data;
-    } catch (error) {
-        console.error("DEBUG fetchJSON Catch block error:", error);
-        throw error;
+  
+    if (!response.ok) {
+      throw new Error(data.errorMessage || response.statusText);
     }
-}
+  
+    return data;
+  }
+  
 
-// CREATE playlist
-export function createPlaylist(newListName, newSongs, userEmail) {
-    return fetchJSON('/', {
-        method: 'POST',
-        body: JSON.stringify({
-            name: newListName,
-            songs: newSongs || [],
-            ownerEmail: userEmail
-        })
+  async function getPlaylistPairs() {
+    return fetchJSON('/api/playlists/pairs', {
+      method: 'GET',
     });
-}
-
-// DELETE playlist
-export function deletePlaylistById(id) {
-    return fetchJSON(`/${id}`, {
-        method: 'DELETE'
+  }
+  
+  async function getGuestPlaylists() {
+    return fetchJSON('/api/playlists/guest', {
+      method: 'GET',
     });
-}
-
-// GET playlist by id
-export function getPlaylistById(id) {
-    return fetchJSON(`/${id}`, {
-        method: 'GET'
+  }
+  
+  async function deletePlaylistById(id) {
+    return fetchJSON(`/api/playlists/${id}`, {
+      method: 'DELETE',
     });
-}
-
-// GET id–name pairs for logged-in user
-export function getPlaylistPairs() {
-    return fetchJSON('/pairs', {
-        method: 'GET'
+  }
+  
+  async function getPlaylistById(id) {
+    return fetchJSON(`/api/playlists/${id}`, {
+      method: 'GET',
     });
-}
-
-// GET – guest/public playlists
-export function getGuestPlaylists() {
-    console.log("DEBUG getGuestPlaylists called");
-    console.log("  Base URL:", baseURL);
-    console.log("  Full endpoint:", `${baseURL}/guest`);
-    
-    return fetchJSON('/guest', {
-        method: 'GET'
+  }
+  
+  async function updatePlaylistById(id, playlist) {
+    return fetchJSON(`/api/playlists/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(playlist),
     });
-}
-
-// UPDATE playlist
-export function updatePlaylistById(id, playlist) {
-    console.log("DEBUG: updatePlaylistById called with id:", id);
-    console.log("DEBUG: Original playlist data:", playlist);
-    
-    // Create a clean copy with proper songs array
-    const playlistToSend = {
-        ...playlist,
-        songs: playlist.songs || []
-    };
-    
-    // Make sure songs is not a string
-    if (typeof playlistToSend.songs === 'string') {
-        try {
-            playlistToSend.songs = JSON.parse(playlistToSend.songs);
-        } catch (e) {
-            console.error("Failed to parse songs string:", e);
-            playlistToSend.songs = [];
-        }
-    }
-    
-    console.log("DEBUG: Sending playlist data:", playlistToSend);
-    console.log("DEBUG: songs type:", typeof playlistToSend.songs);
-    console.log("DEBUG: songs is array?", Array.isArray(playlistToSend.songs));
-    
-    return fetchJSON(`/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(playlistToSend)
+  }
+  
+  async function createPlaylist(name, songs = []) {
+    return fetchJSON('/api/playlists', {
+      method: 'POST',
+      body: JSON.stringify({ name, songs }),
     });
-}
-
-const apis = {
-    createPlaylist,
-    deletePlaylistById,
-    getPlaylistById,
+  }
+  
+  async function copyPlaylist(playlistId) {
+    return fetchJSON(`/api/playlists/${playlistId}/copy`, {
+      method: 'POST',
+    });
+  }
+  
+  export default {
     getPlaylistPairs,
     getGuestPlaylists,
-    updatePlaylistById
-};
-
-export default apis;
+    deletePlaylistById,
+    getPlaylistById,
+    updatePlaylistById,
+    createPlaylist,
+    copyPlaylist,
+  };
+  

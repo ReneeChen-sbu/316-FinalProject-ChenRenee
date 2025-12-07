@@ -416,32 +416,32 @@ function GlobalStoreContextProvider(props) {
             isGuest: auth.user?.isGuest,
             userEmail: auth.user?.email
           });
-          
+      
           let response;
-          
+      
           if (auth.loggedIn && !auth.user?.isGuest) {
-            console.log("User is logged in, getting user playlists");
-            response = await storeRequestSender.getPlaylistPairs();
+            response = await storeRequestSender.getPlaylistPairs();  // my + public
           } else {
-            console.log("Guest user, getting guest playlists");
-            response = await storeRequestSender.getGuestPlaylists();
+            response = await storeRequestSender.getGuestPlaylists(); // public only
           }
           
-          console.log("Server response:", response?.success);
-          
+      
           if (response.success) {
             console.log('idNamePairs from server:', response.idNamePairs);
-            console.log('First playlist owner:', response.idNamePairs[0]?.ownerEmail);
-            
+      
             storeReducer({
               type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
               payload: response.idNamePairs
             });
+          } else {
+            console.error("Failed to load idNamePairs:", response.errorMessage);
           }
         } catch (error) {
           console.error("Error loading playlist pairs:", error);
         }
-      }
+      };
+      
+      
 
     // THE FOLLOWING 5 FUNCTIONS ARE FOR COORDINATING THE DELETION
     // OF A LIST, WHICH INCLUDES USING A VERIFICATION MODAL. THE
@@ -488,31 +488,23 @@ function GlobalStoreContextProvider(props) {
 
     store.copyPlaylist = async function (playlistId) {
         try {
-            console.log('Copying playlist with ID:', playlistId);
-    
-            const response = await fetch(`http://localhost:4000/api/playlists/${playlistId}/copy`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            });
-    
-            console.log('Copy response status:', response.status);
-    
-            const data = await response.json();
-    
-            if (!data.success) {
-                console.error('Copy playlist failed:', data.errorMessage);
-                return { success: false, error: data.errorMessage };
-            }
-    
-            await store.loadIdNamePairs();
-            return { success: true, playlist: data.playlist };
+          const response = await storeRequestSender.copyPlaylist(playlistId);
+      
+          if (!response.success) {
+            console.error('Copy playlist failed:', response.errorMessage);
+            return { success: false, error: response.errorMessage };
+          }
+      
+          // Make sure the new playlist shows up in the list
+          await store.loadIdNamePairs();
+      
+          return { success: true, playlist: response.playlist };
         } catch (err) {
-            console.error('Error copying playlist:', err);
-            return { success: false, error: err.message };
+          console.error('Error copying playlist:', err);
+          return { success: false, error: err.message };
         }
-    };
-    
+      };
+      
     
     // THIS FUNCTION SHOWS THE MODAL FOR PROMPTING THE USER
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST

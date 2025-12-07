@@ -281,39 +281,37 @@ const getPlaylistPairs = async (req, res) => {
     console.log('getPlaylistPairs called for userId:', userId);
 
     if (!userId) {
-      console.log('No user ID, returning empty');
       return res.status(401).json({
         success: false,
         errorMessage: 'Not logged in'
       });
     }
 
-    // Get user to verify
+    // Verify user exists
     const user = await User.findById(userId);
     if (!user) {
-      console.log('User not found:', userId);
       return res.status(404).json({
         success: false,
         errorMessage: 'User not found'
       });
     }
-    
-    console.log('User found:', user.email);
 
-    // ONLY get playlists owned by this user
-    const playlists = await Playlist.find({ 
-      owner: userId  // CRITICAL: Only this user's playlists
+    const playlists = await Playlist.find({
+      $or: [
+        { owner: userId },       // my playlists
+        { published: true }      // everyone’s public playlists
+      ]
     })
-    .populate('owner', 'userName email')
-    .sort({ updatedAt: -1 });
+      .populate('owner', 'userName email')
+      .sort({ updatedAt: -1 });
 
-    console.log(`Found ${playlists.length} playlists for user ${user.email}`);
-    
+    console.log(`Found ${playlists.length} visible playlists for user ${user.email}`);
+
     const pairs = playlists.map(playlist => ({
       _id: playlist._id,
       name: playlist.name,
-      ownerName: playlist.owner.userName,
-      ownerEmail: playlist.owner.email,
+      ownerName: playlist.owner?.userName || 'Unknown',
+      ownerEmail: playlist.owner?.email || 'unknown@example.com',
       songs: playlist.songs || [],
       listenerCount: playlist.listenerCount || 0,
       published: playlist.published ?? true
@@ -331,6 +329,7 @@ const getPlaylistPairs = async (req, res) => {
     });
   }
 };
+
 
 
 // GET all playlists for logged-in user (full docs, not pairs)
