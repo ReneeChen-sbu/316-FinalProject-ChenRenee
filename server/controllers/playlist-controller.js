@@ -57,7 +57,7 @@ const createPlaylist = async (req, res) => {
     
     // Populate before returning
     const populated = await Playlist.findById(saved._id)
-      .populate('owner', 'userName email', 'userName email avatar')
+      .populate('owner', 'userName email avatar')
       .populate('songs');
 
     return res.status(201).json({
@@ -344,7 +344,7 @@ const getPlaylists = async (req, res) => {
   try {
     const userId = req.userId;
     const playlists = await Playlist.find({ owner: userId })
-      .populate('owner', 'userName email', 'userName email avatar')
+      .populate('owner', 'userName email avatar')
       .populate('songs')
       .sort({ updatedAt: -1 });
 
@@ -461,7 +461,7 @@ const updatePlaylist = async (req, res) => {
     
     // Populate before returning
     const populated = await Playlist.findById(updated._id)
-      .populate('owner', 'userName email', 'userName email avatar')
+      .populate('owner', 'userName email avatar')
       .populate('songs');
 
     console.log("Successfully updated playlist");

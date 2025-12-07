@@ -38,14 +38,14 @@ class MongoDatabaseManager {
     async getPlaylistById(id) {
         return await mongoose.model('Playlist')
             .findById(id)
-            .populate('owner', 'userName email')
+            .populate('owner', 'userName email avatar')
             .populate('songs');
     }
 
     async getPlaylistsByOwner(ownerId) {
         return await mongoose.model('Playlist')
             .find({ owner: ownerId })
-            .populate('owner', 'userName email')
+            .populate('owner', 'userName email avatar')
             .populate('songs');
     }
 
