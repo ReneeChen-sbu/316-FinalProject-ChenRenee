@@ -110,23 +110,43 @@ function GlobalStoreContextProvider(props) {
             }
             // CREATE A NEW LIST
             case GlobalStoreActionType.CREATE_NEW_LIST: {
-                const newPairs = [...store.idNamePairs, {
-                    _id: payload._id ?? payload.id,
-                    name: payload.name
-                }];
-            
+                console.log("Reducer: Creating new list, payload:", payload);
+                
+                // Make sure we're adding to existing playlists, not replacing
+                const newPairs = [...store.idNamePairs];
+                
+                // Check if the playlist already exists in the array
+                const exists = newPairs.some(pair => 
+                    pair._id === payload._id || pair._id === payload.id
+                );
+                
+                if (!exists) {
+                    newPairs.push({
+                        _id: payload._id ?? payload.id,
+                        name: payload.name,
+                        ownerEmail: payload.ownerEmail,
+                        songs: payload.songs || []
+                    });
+                }
+                
+                console.log("New pairs array:", newPairs);
+                
                 return setStore({
-                    currentModal : CurrentModal.NONE,
-                    idNamePairs: newPairs,  
+                    currentModal: CurrentModal.NONE,
+                    idNamePairs: newPairs,
                     currentList: payload,
                     currentSongIndex: -1,
                     currentSong: null,
                     newListCounter: store.newListCounter + 1,
                     listNameActive: false,
                     listIdMarkedForDeletion: null,
-                    listMarkedForDeletion: null
+                    listMarkedForDeletion: null,
+                    searchQuery: store.searchQuery,
+                    filteredPlaylists: store.filteredPlaylists,
+                    isSearching: store.isSearching
                 });
             }
+
             
             // GET ALL THE LISTS SO WE CAN PRESENT THEM
             case GlobalStoreActionType.LOAD_ID_NAME_PAIRS: {
@@ -335,25 +355,38 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION CREATES A NEW LIST
     store.createNewList = async function () {
         let newListName = "Untitled" + store.newListCounter;
-        const response = await storeRequestSender.createPlaylist(newListName, [], auth.user.email);
-        console.log("createNewList response: ", response);
-        if (response.success) {
-            tps.clearAllTransactions();
-            let newList = response.playlist;
-            storeReducer({
-                type: GlobalStoreActionType.CREATE_NEW_LIST,
-                payload: newList
+        console.log("Creating playlist with name:", newListName, "for user:", auth.user?.email);
+        
+        try {
+            const response = await storeRequestSender.createPlaylist(newListName, [], auth.user?.email);
+            console.log("createNewList response: ", response);
+            
+            if (response && response.success) {
+                tps.clearAllTransactions();
+                let newList = response.playlist;
+                
+                // Update the state with the new playlist
+                storeReducer({
+                    type: GlobalStoreActionType.CREATE_NEW_LIST,
+                    payload: newList
+                });
+                
+                console.log("Created new playlist without navigation:", newList);
+                return { success: true, playlist: newList };
             }
-            );
-            //immediately refresh the list so newly added playlist shows in menu immediately
-             await store.loadIdNamePairs();
-
-            // IF IT'S A VALID LIST THEN LET'S START EDITING IT
-            const listId = newList._id ?? newList.id;
-            store.setCurrentList(listId);
-        }
-        else {
-            console.error("FAILED TO CREATE A NEW LIST", response);
+            else {
+                console.error("FAILED TO CREATE A NEW LIST", response);
+                return { 
+                    success: false, 
+                    error: response?.errorMessage || "Unknown error" 
+                };
+            }
+        } catch (error) {
+            console.error("Error in createNewList:", error);
+            return { 
+                success: false, 
+                error: error.message || "Network error" 
+            };
         }
     }
 
@@ -460,7 +493,7 @@ function GlobalStoreContextProvider(props) {
     store.setCurrentList = function (id, options = {}) {
         console.log("DEBUG: setCurrentList called with id:", id);
     
-        const { navigate = true } = options; // ⬅️ default: true
+        const { navigate = false } = options; // CHANGE: default to false
     
         const isValidObjectId = (id) => {
             if (typeof id !== 'string') return false;

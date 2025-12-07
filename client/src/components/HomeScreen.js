@@ -7,7 +7,9 @@ import {
     Typography, 
     Select, 
     MenuItem, 
-    FormControl
+    FormControl,
+    Alert,
+    Snackbar
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -22,13 +24,67 @@ export default function HomeScreen() {
     const [songArtistFilter, setSongArtistFilter] = useState('');
     const [songYearFilter, setSongYearFilter] = useState('');
     const [sortBy, setSortBy] = useState('listeners-hi-lo');
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: '',
+        severity: 'success'
+    });
 
+    // Load playlists on component mount
     useEffect(() => {
+        console.log('HomeScreen: Loading playlists...');
         store.loadGuestPlaylists();
     }, []);
 
+    // Handle creating a new playlist - NO NAVIGATION
+    const handleCreateNewPlaylist = async () => {
+        setIsCreatingNew(true);
+        try {
+            console.log('Creating new playlist...');
+            
+            // Create the playlist WITHOUT navigation
+            const response = await store.createNewList();
+            
+            console.log('Create playlist response:', response);
+            
+            if (response && response.success) {
+                console.log('Playlist created successfully:', response.playlist);
+                
+                // Show success message
+                setSnackbar({
+                    open: true,
+                    message: 'Playlist created successfully!',
+                    severity: 'success'
+                });
+                
+                // Refresh the playlist list after a short delay
+                setTimeout(() => {
+                    store.loadGuestPlaylists();
+                }, 500);
+                
+            } else {
+                console.error('Failed to create playlist:', response?.error);
+                setSnackbar({
+                    open: true,
+                    message: `Failed to create playlist: ${response?.error || 'Unknown error'}`,
+                    severity: 'error'
+                });
+            }
+        } catch (error) {
+            console.error('Error creating playlist:', error);
+            setSnackbar({
+                open: true,
+                message: `Error creating playlist: ${error.message}`,
+                severity: 'error'
+            });
+        } finally {
+            setIsCreatingNew(false);
+        }
+    };
+
     const handleSearch = () => {
-        console.log('🔍 Search button clicked');
+        console.log('Search button clicked');
         console.log('Filters:', {
             playlistNameFilter,
             userNameFilter,
@@ -73,10 +129,17 @@ export default function HomeScreen() {
         setSongArtistFilter('');
         setSongYearFilter('');
         store.clearSearch();
+        
+        // Show cleared message
+        setSnackbar({
+            open: true,
+            message: 'Search filters cleared',
+            severity: 'info'
+        });
     };
 
     const sortPlaylists = (playlists) => {
-        if (!playlists) return [];
+        if (!playlists || !Array.isArray(playlists)) return [];
         
         const sorted = [...playlists];
         switch(sortBy) {
@@ -105,10 +168,15 @@ export default function HomeScreen() {
         }
     };
 
+    // Handle snackbar close
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
+
     // Use filtered playlists when searching, otherwise use all playlists
     const displayPlaylists = store.isSearching ? 
-        store.filteredPlaylists : 
-        store.idNamePairs;
+        (store.filteredPlaylists || []) : 
+        (store.idNamePairs || []);
     
     const sortedPlaylists = sortPlaylists(displayPlaylists);
 
@@ -234,7 +302,7 @@ export default function HomeScreen() {
                 {store.isSearching && (
                     <Box sx={{ mt: 2, p: 2, backgroundColor: '#e8e0f8', borderRadius: 2 }}>
                         <Typography variant="body2" color="#9c27b0">
-                            Found {store.filteredPlaylists.length} playlist{store.filteredPlaylists.length !== 1 ? 's' : ''}
+                            Found {store.filteredPlaylists ? store.filteredPlaylists.length : 0} playlist{store.filteredPlaylists && store.filteredPlaylists.length !== 1 ? 's' : ''}
                             {store.searchQuery && (
                                 <Typography variant="caption" component="div" sx={{ mt: 0.5, color: '#666' }}>
                                     Search: {store.searchQuery}
@@ -271,6 +339,7 @@ export default function HomeScreen() {
                     </Typography>
                 </Box>
 
+                {/* Playlist Cards */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
                     {sortedPlaylists && sortedPlaylists.length > 0 ? (
                         sortedPlaylists.map((pair) => (
@@ -293,24 +362,47 @@ export default function HomeScreen() {
                     )}
                 </Box>
 
+                {/* New Playlist Button */}
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <Button
                         variant="contained"
                         startIcon={<AddCircleOutlineIcon />}
-                        onClick={() => store.createNewList()}
+                        onClick={handleCreateNewPlaylist}
+                        disabled={isCreatingNew}
                         sx={{
                             backgroundColor: '#9c27b0',
                             borderRadius: '20px',
                             textTransform: 'none',
-                            '&:hover': { backgroundColor: '#7b1fa2' }
+                            '&:hover': { backgroundColor: '#7b1fa2' },
+                            '&.Mui-disabled': {
+                                backgroundColor: '#cccccc',
+                                color: '#666666'
+                            }
                         }}
                     >
-                        New Playlist
+                        {isCreatingNew ? 'Creating...' : 'New Playlist'}
                     </Button>
                 </Box>
             </Box>
 
+            {/* Modals */}
             <MUIDeleteModal />
+
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert 
+                    onClose={handleCloseSnackbar} 
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

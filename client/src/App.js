@@ -54,18 +54,6 @@ function AppContent() {
                     <SplashScreen showFullScreen={false} /> 
                 )}
             </Route>
-            
-            <Route path="/playlist/:id" exact>
-                {auth.loggedIn ? (
-                    <>
-                        <AppBanner />
-                        <WorkspaceScreen />
-                        <Statusbar />
-                    </>
-                ) : (
-                    <SplashScreen showFullScreen={false} /> 
-                )}
-            </Route>
         </Switch>
     );
 }
