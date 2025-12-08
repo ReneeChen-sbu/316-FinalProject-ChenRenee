@@ -621,7 +621,7 @@ module.exports = {
   getPlaylists,
   updatePlaylist,
   addSongToPlaylist,
- removeSongFromPlaylist,
+  removeSongFromPlaylist,
   copyPlaylist,
   getGuestPlaylists
 };

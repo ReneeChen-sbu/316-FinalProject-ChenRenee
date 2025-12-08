@@ -582,8 +582,6 @@ export default function SongsCatalogScreen() {
                            <ArrowRightIcon fontSize="small" />
                         </MenuItem>
 
-                    {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
-
                            <MenuItem
 
                                 onClick={handleEditSong}
@@ -612,11 +610,6 @@ export default function SongsCatalogScreen() {
 
                             </MenuItem>
 
-                        )}
-
-
-
-                        {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
 
                             <MenuItem
 
@@ -645,8 +638,6 @@ export default function SongsCatalogScreen() {
                                 Remove from Catalog
 
                             </MenuItem>
-
-                        )}
 
                     </Box>
 
