@@ -17,14 +17,7 @@ getLoggedIn = async (req, res) => {
         }
 
         const user = await db.getUserById(verified.id);
-        
-        console.log('DEBUG getLoggedIn user from DB:', {
-            id: user?._id,
-            userName: user?.userName,
-            avatar: user?.avatar?.substring(0, 30), // Check avatar field
-            avatarImage: user?.avatarImage, // Check avatarImage field
-            allFields: Object.keys(user || {})
-        });
+    
 
         return res.status(200).json({
             loggedIn: true,
@@ -37,13 +30,11 @@ getLoggedIn = async (req, res) => {
         });
 
     } catch (err) {
-        console.log("getLoggedIn error: " + err);
         res.status(500).json(false);
     }
 };
 
 loginUser = async (req, res) => {
-    console.log("loginUser");
     try {
         const { email, password } = req.body;
 
@@ -54,7 +45,6 @@ loginUser = async (req, res) => {
         }
 
         const existingUser = await db.getUserByEmail(email);
-        console.log("existingUser: ", existingUser);
         if (!existingUser) {
             return res
                 .status(401)
@@ -63,14 +53,12 @@ loginUser = async (req, res) => {
                 });
         }
 
-        console.log("provided password: " + password);
         const passwordCorrect = await bcrypt.compare(
             password,
             existingUser.passwordHash || existingUser.password_hash
         );
 
         if (!passwordCorrect) {
-            console.log("Incorrect password");
             return res
                 .status(401)
                 .json({
@@ -83,7 +71,7 @@ loginUser = async (req, res) => {
             id: existingUser._id || existingUser.id,
             email: existingUser.email
         });
-        console.log("Generated token:", token);
+    
 
 
         return res
@@ -122,12 +110,8 @@ logoutUser = async (req, res) => {
 };
 
 registerUser = async (req, res) => {
-    console.log("REGISTERING USER IN BACKEND");
     try {
       const { userName, email, password, passwordVerify, avatar } = req.body;
-      console.log("create user:", userName, email, password, passwordVerify, !!avatar);
-  
-   
       if (!userName || !email || !password || !passwordVerify) {
         return res.status(400).json({ errorMessage: "Please enter all required fields." });
       }
@@ -215,7 +199,7 @@ updateUserProfile = async (req, res) => {
         // Update username if provided
         if (userName !== undefined) {
             updateData.userName = userName.trim();
-            console.log('Updating username to:', updateData.userName);
+            
         }
 
         // Update password if provided
@@ -223,7 +207,6 @@ updateUserProfile = async (req, res) => {
             const saltRounds = 10;
             const salt = await bcrypt.genSalt(saltRounds);
             updateData.passwordHash = await bcrypt.hash(newPassword, salt);
-            console.log('Updating password');
         }
 
         // Handle avatar (Base64 string)
@@ -231,17 +214,17 @@ updateUserProfile = async (req, res) => {
             if (avatar === null || avatar === '') {
                 // Clear avatar
                 updateData.avatar = null;
-                console.log('Clearing avatar');
+               
             } else if (avatar.startsWith('data:image/')) {
                 // It's a valid Base64 image
                 updateData.avatar = avatar;
-                console.log('Setting avatar (Base64 string length):', avatar.length);
+                
             } else {
                 console.log('Invalid avatar format, skipping');
             }
         }
 
-        console.log('Final update data for DB:', updateData);
+
 
         // Update user in database using your db manager
         const updatedUser = await db.updateUser(userId, updateData);
@@ -253,7 +236,7 @@ updateUserProfile = async (req, res) => {
             });
         }
 
-        console.log('User updated successfully in DB');
+    
 
         // Return user data (excluding password hash)
         const userResponse = {

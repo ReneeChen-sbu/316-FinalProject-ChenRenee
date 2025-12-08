@@ -37,7 +37,6 @@ export default function HomeScreen() {
 
     // Load playlists on component mount or auth change
     useEffect(() => {
-        console.log('HomeScreen: Loading playlists...');
         store.loadIdNamePairs();
     }, [auth.loggedIn, auth.user?.isGuest]);
 
@@ -45,14 +44,9 @@ export default function HomeScreen() {
     const handleCreateNewPlaylist = async () => {
         setIsCreatingNew(true);
         try {
-            console.log('Creating new playlist...');
-            
             const response = await store.createNewList();
-            console.log('Create playlist response:', response);
-            
+           
             if (response && response.success) {
-                console.log('Playlist created successfully:', response.playlist);
-                
                 setSnackbar({
                     open: true,
                     message: 'Playlist created successfully!',
@@ -61,10 +55,8 @@ export default function HomeScreen() {
                 
                 setTimeout(() => {
                     if (auth.loggedIn && !auth.user?.isGuest) {
-                        console.log('Logged in user, loading user playlists...');
                         store.loadIdNamePairs();
                     } else {
-                        console.log('Guest user, loading guest playlists...');
                         store.loadGuestPlaylists();
                     }
                 }, 500);
@@ -89,15 +81,6 @@ export default function HomeScreen() {
     };
 
     const handleSearch = () => {
-        console.log('Search triggered');
-        console.log('Filters:', {
-            playlistNameFilter,
-            userNameFilter,
-            songTitleFilter,
-            songArtistFilter,
-            songYearFilter
-        });
-        
         const searchTerms = [];
         if (playlistNameFilter) {
             searchTerms.push(`playlist:${playlistNameFilter}`);
@@ -116,12 +99,12 @@ export default function HomeScreen() {
         }
         
         const query = searchTerms.join(' ');
-        console.log('Final search query:', query);
+      
         
         store.searchPlaylists(query);
     };
 
-    // 🔑 NEW: Pressing Enter in any filter runs search
+  
     const handleSearchKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();

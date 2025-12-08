@@ -85,8 +85,6 @@ class MongoDatabaseManager {
 
     async updateUser(userId, updateData) {
       try {
-          console.log('Updating user in DB:', userId, updateData);
-  
           // Use the registered Mongoose model, same as other methods
           const UserModel = mongoose.model('User');
   

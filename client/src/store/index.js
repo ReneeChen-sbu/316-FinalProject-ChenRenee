@@ -447,8 +447,6 @@ function GlobalStoreContextProvider(props) {
                     playlist: playlist
                 }
             });
-    
-            console.log("Playlist name changed successfully");
         }
     
         asyncChangeListName(id);
@@ -471,7 +469,6 @@ function GlobalStoreContextProvider(props) {
         
         try {
             const response = await storeRequestSender.createPlaylist(newListName, [], auth.user?.email);
-            console.log("createNewList response: ", response);
             
             if (response && response.success) {
                 tps.clearAllTransactions();
@@ -483,7 +480,6 @@ function GlobalStoreContextProvider(props) {
                     payload: newList
                 });
                 
-                console.log("Created new playlist without navigation:", newList);
                 return { success: true, playlist: newList };
             }
             else {
@@ -505,13 +501,6 @@ function GlobalStoreContextProvider(props) {
     // THIS FUNCTION LOADS ALL THE ID, NAME PAIRS SO WE CAN LIST ALL THE LISTS
     store.loadIdNamePairs = async function () {
         try {
-          console.log("loadIdNamePairs called", {
-            isLoggedIn: auth.loggedIn,
-            user: auth.user,
-            isGuest: auth.user?.isGuest,
-            userEmail: auth.user?.email
-          });
-      
           let response;
       
           if (auth.loggedIn && !auth.user?.isGuest) {
@@ -522,8 +511,6 @@ function GlobalStoreContextProvider(props) {
           
       
           if (response.success) {
-            console.log('idNamePairs from server:', response.idNamePairs);
-      
             storeReducer({
               type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
               payload: response.idNamePairs
@@ -563,7 +550,6 @@ function GlobalStoreContextProvider(props) {
             if (response.success) {
                 // Just reload the playlists without navigating
                 await store.loadIdNamePairs();
-                console.log("Playlist deleted, staying on current page");
             }
         }
         processDelete(id);
@@ -605,18 +591,10 @@ function GlobalStoreContextProvider(props) {
     // TO SEE IF THEY REALLY WANT TO DELETE THE LIST
 
     store.showEditSongModal = (songIndex, songToEdit) => {
-        console.log("DEBUG: showEditSongModal called");
-        console.log("Song index:", songIndex);
-        console.log("Song to edit:", songToEdit);
-        console.log("Current modal before:", store.currentModal);
-        
         storeReducer({
             type: GlobalStoreActionType.EDIT_SONG,
             payload: {currentSongIndex: songIndex, currentSong: songToEdit}
         });
-        
-        console.log("Current modal after:", store.currentModal);
-        console.log("Should be EDIT_SONG:", store.currentModal === CurrentModal.EDIT_SONG);
     };
 
     store.hideModals = () => {
@@ -641,8 +619,6 @@ function GlobalStoreContextProvider(props) {
     // FUNCTIONS ARE setCurrentList, addMoveItemTransaction, addUpdateItemTransaction,
     // moveItem, updateItem, updateCurrentList, undo, and redo
     store.setCurrentList = function (id, options = {}) {
-        console.log("DEBUG: setCurrentList called with id:", id);
-    
         const { navigate = false } = options; // CHANGE: default to false
     
         const isValidObjectId = (id) => {
@@ -651,7 +627,6 @@ function GlobalStoreContextProvider(props) {
         };
     
         if (id === "guest" || id === "guest@playlister.com" || !isValidObjectId(id)) {
-            console.log("DEBUG: Skipping setCurrentList - invalid ObjectId:", id);
             return;
         }
     
@@ -668,9 +643,7 @@ function GlobalStoreContextProvider(props) {
                     if (navigate) {
                         history.push("/playlist/" + id);
                     }
-                } else {
-                    console.log("DEBUG: Failed to get playlist:", response.errorMessage);
-                }
+                } 
             } catch (error) {
                 console.error("DEBUG: Error in setCurrentList:", error);
             }
@@ -805,18 +778,15 @@ function GlobalStoreContextProvider(props) {
     //create a brand-new song in the global catalog
     store.addSongToCatalog = async function (songData) {
         try {
-            console.log("Adding new catalog song:", songData);
             const response = await storeRequestSender.createSong(songData);
             if (response.success) {
                 // Reload catalog so it shows up immediately
                 await store.loadAllSongs();
                 return response.song;
             } else {
-                console.error("Failed to create catalog song:", response.errorMessage);
                 return null;
             }
         } catch (err) {
-            console.error("Error creating catalog song:", err);
             throw err;
         }
     };
@@ -975,62 +945,87 @@ function GlobalStoreContextProvider(props) {
             let transaction = new UpdateSong_Transaction(this, index, oldSongData, newSongData);
             tps.processTransaction(transaction);   // this will call store.updateSong internally
         };
-    
-        // Add a catalog song into a playlist the user owns
+
         store.addSongToPlaylistFromCatalog = async function (playlistId, song) {
             try {
+                console.log('DEBUG: Adding song to playlist', { 
+                    playlistId, 
+                    songTitle: song.title,
+                    songId: song._id 
+                });
                 
-                const response = await storeRequestSender.getPlaylistById(playlistId);
-                if (!response.success) {
-                    console.error("Failed to fetch playlist:", response.errorMessage);
+                // First get the current playlist
+                const playlistResponse = await storeRequestSender.getPlaylistById(playlistId);
+                if (!playlistResponse.success) {
+                    console.error('DEBUG: Failed to get playlist:', playlistResponse.errorMessage);
                     return false;
                 }
-        
-                const playlist = response.playlist;
-        
-               
-                if (playlist.ownerEmail !== auth.user?.email) {
-                    console.error("User is not owner of playlist, cannot modify");
-                    return false;
-                }
-        
                 
-                const songCopy = {
-                    title:     song.title,
-                    artist:    song.artist,
-                    year:      song.year,
+                const playlist = playlistResponse.playlist;
+                console.log('DEBUG: Got playlist:', { 
+                    name: playlist.name, 
+                    currentSongs: playlist.songs ? playlist.songs.length : 0 
+                });
+                
+                // Create song data for the playlist (basic structure)
+                const songToAdd = {
+                    title: song.title,
+                    artist: song.artist,
+                    year: song.year,
                     youTubeId: song.youTubeId
                 };
-        
-                if (!Array.isArray(playlist.songs)) {
-                    playlist.songs = [];
-                }
-                playlist.songs.push(songCopy);
-        
-               
-                const updateRes = await storeRequestSender.updatePlaylistById(
-                    playlist._id ?? playlist.id,
-                    playlist
+                
+                // Add to songs array
+                const currentSongs = Array.isArray(playlist.songs) ? playlist.songs : [];
+                
+                // Check if song already exists (prevent duplicates)
+                const songExists = currentSongs.some(existingSong => 
+                    existingSong.title === song.title && 
+                    existingSong.artist === song.artist
                 );
-        
-                if (!updateRes.success) {
-                    console.error("Failed to update playlist:", updateRes.errorMessage);
+                
+                if (songExists) {
+                    console.log('DEBUG: Song already exists in playlist');
                     return false;
                 }
-                await store.loadIdNamePairs();
-        
-                return true;
-            } catch (err) {
-                console.error("Error in addSongToPlaylistFromCatalog:", err);
+                
+                const updatedSongs = [...currentSongs, songToAdd];
+                
+                //  Update playlist on server
+                console.log('DEBUG: Updating playlist with new song...');
+                const updateResponse = await storeRequestSender.updatePlaylistById(
+                    playlistId,
+                    { 
+                        ...playlist, 
+                        songs: updatedSongs 
+                    }
+                );
+                
+                if (updateResponse.success) {
+                    console.log('DEBUG: Successfully added song to playlist');
+                    
+                    // Refresh the playlist data
+                    await store.loadIdNamePairs();
+                    
+                    // If this is the current open playlist, refresh it too
+                    if (store.currentList && store.currentList._id === playlistId) {
+                        store.setCurrentList(playlistId);
+                    }
+                    
+                    return true;
+                } else {
+                    console.error('DEBUG: Failed to update playlist:', updateResponse.errorMessage);
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('DEBUG: Error in addSongToPlaylistFromCatalog:', error);
                 return false;
             }
         };
     
-        
+
         store.updateCurrentList = function () {
-        console.log("DEBUG: updateCurrentList called");
-        console.log("Current list songs:", store.currentList?.songs);
-        console.log("Songs type:", typeof store.currentList?.songs);
         
         async function asyncUpdateCurrentList() {
             if (!store.currentList) {
@@ -1048,13 +1043,10 @@ function GlobalStoreContextProvider(props) {
                     : []
             };
             
-            console.log("DEBUG: Sending to server:", listCopy);
             
             try {
                 const response = await storeRequestSender.updatePlaylistById(listId, listCopy);
                 if (response.success) {
-                    console.log("Server update successful");
-                    
                     // Update local state with server response
                     storeReducer({
                         type: GlobalStoreActionType.SET_CURRENT_LIST,
@@ -1107,13 +1099,10 @@ function GlobalStoreContextProvider(props) {
                 return;
             }
             
-            console.log('Searching with query:', query);
-            console.log('Available playlists:', store.idNamePairs);
-            
+        
             // First, make sure we have full playlist data with songs
             // If idNamePairs don't have songs, we need to fetch them
             if (!store.idNamePairs || store.idNamePairs.length === 0) {
-                console.log('No playlists to search');
                 storeReducer({
                     type: GlobalStoreActionType.SET_SEARCH_QUERY,
                     payload: { query }
@@ -1126,18 +1115,10 @@ function GlobalStoreContextProvider(props) {
             }
             
             // Parse the query for prefix-based search
-            const terms = query.toLowerCase().trim().split(' ');
-            console.log('Parsed search terms:', terms);
-            
+            const terms = query.toLowerCase().trim().split(' ');       
             const filtered = store.idNamePairs.filter(playlist => {
                 // Check if playlist has songs (for debugging)
                 const hasSongs = playlist.songs && Array.isArray(playlist.songs);
-                console.log(`Playlist "${playlist.name}":`, {
-                    name: playlist.name,
-                    ownerEmail: playlist.ownerEmail,
-                    hasSongs: hasSongs,
-                    songCount: hasSongs ? playlist.songs.length : 0
-                });
                 
                 // Check each search term
                 return terms.every(term => {
@@ -1146,7 +1127,6 @@ function GlobalStoreContextProvider(props) {
                         const searchTerm = term.substring(9); // Remove 'playlist:'
                         const playlistName = playlist.name || '';
                         const matches = playlistName.toLowerCase().includes(searchTerm);
-                        console.log(`  Checking playlist name "${playlistName}" for "${searchTerm}": ${matches}`);
                         return matches;
                     }
                     
@@ -1155,7 +1135,6 @@ function GlobalStoreContextProvider(props) {
                         const ownerEmail = playlist.ownerEmail || '';
                         const username = ownerEmail.split('@')[0] || '';
                         const matches = username.toLowerCase().includes(searchTerm);
-                        console.log(`  Checking username "${username}" for "${searchTerm}": ${matches}`);
                         return matches;
                     }
                     
@@ -1165,7 +1144,6 @@ function GlobalStoreContextProvider(props) {
                         const matches = songs.some(song => 
                             song.title && song.title.toLowerCase().includes(searchTerm)
                         );
-                        console.log(`  Checking song titles for "${searchTerm}": ${matches}`);
                         return matches;
                     }
                     
@@ -1175,7 +1153,6 @@ function GlobalStoreContextProvider(props) {
                         const matches = songs.some(song => 
                             song.artist && song.artist.toLowerCase().includes(searchTerm)
                         );
-                        console.log(`  Checking song artists for "${searchTerm}": ${matches}`);
                         return matches;
                     }
                     
@@ -1185,7 +1162,6 @@ function GlobalStoreContextProvider(props) {
                         const matches = songs.some(song => 
                             String(song.year || '').includes(searchTerm)
                         );
-                        console.log(`  Checking song years for "${searchTerm}": ${matches}`);
                         return matches;
                     }
                     
@@ -1204,13 +1180,9 @@ function GlobalStoreContextProvider(props) {
                             (song.artist && song.artist.toLowerCase().includes(searchTerm)) ||
                             String(song.year || '').includes(searchTerm)
                         );
-                    
-                    console.log(`  General search for "${searchTerm}": ${matches}`);
                     return matches;
                 });
             });
-            
-            console.log(`Filtered ${store.idNamePairs.length} playlists to ${filtered.length} results`);
             
             storeReducer({
                 type: GlobalStoreActionType.SET_SEARCH_QUERY,
@@ -1261,14 +1233,11 @@ function GlobalStoreContextProvider(props) {
             try {
                 const response = await storeRequestSender.getGuestPlaylists();
                 if (response.success) {
-                    console.log('Guest idNamePairs from server:', response.idNamePairs);
                     storeReducer({
                         type: GlobalStoreActionType.LOAD_ID_NAME_PAIRS,
                         payload: response.idNamePairs
                     });
-                } else {
-                    console.log('FAILED TO GET GUEST PLAYLISTS');
-                }
+                } 
             } catch (error) {
                 console.error('Error loading guest playlists:', error);
             }
@@ -1280,9 +1249,6 @@ function GlobalStoreContextProvider(props) {
         };
     
         store.updatePlaylistDirectly = async function (id, updatedPlaylist) {
-            console.log("updatePlaylistDirectly called for id:", id);
-            console.log("Updated playlist data:", updatedPlaylist);
-            
             try {
               // First update locally
               const list = store.currentList;
@@ -1300,17 +1266,13 @@ function GlobalStoreContextProvider(props) {
               // Then update on server
               const response = await storeRequestSender.updatePlaylistById(id, updatedPlaylist);
               if (response.success) {
-                console.log("Playlist updated successfully on server");
-                
                 // Refresh the playlist pairs
                 await store.loadIdNamePairs();
                 return true;
               } else {
-                console.error("Failed to update playlist on server:", response.errorMessage);
                 return false;
               }
             } catch (error) {
-              console.error("Error updating playlist:", error);
               return false;
             }
           };

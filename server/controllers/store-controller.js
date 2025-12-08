@@ -99,7 +99,6 @@ getPlaylistById = async (req, res) => {
         
         // Check if it's a valid MongoDB ObjectId
         if (!mongoose.Types.ObjectId.isValid(playlistId)) {
-            console.log(`Invalid playlist ID: ${playlistId}`);
             return res.status(400).json({
                 success: false,
                 errorMessage: 'Invalid playlist ID'

@@ -1,5 +1,6 @@
 import { useContext, useState, useEffect } from 'react';
 import { GlobalStoreContext } from '../store';
+import AuthContext from '../auth';
 import { Box, TextField, Button, Typography, Alert, Divider, Grid } from '@mui/material';
 
 // Green color palette to match MUIEditSongModal
@@ -11,6 +12,7 @@ const greenColors = {
 
 export default function MUIAddSongModal() {
     const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext); 
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
     const [year, setYear] = useState('');
@@ -22,11 +24,6 @@ export default function MUIAddSongModal() {
 
     useEffect(() => {
         const shouldOpen = store.currentModal === 'ADD_SONG' || store.isAddSongModalOpen;
-        console.log("MUIAddSongModal useEffect:", {
-            shouldOpen,
-            currentModal: store.currentModal,
-            isAddSongModalOpen: store.isAddSongModalOpen
-        });
         
         if (shouldOpen !== isModalOpen) {
             setIsModalOpen(shouldOpen);
@@ -60,7 +57,9 @@ export default function MUIAddSongModal() {
             title: title.trim(),
             artist: artist.trim(),
             year: Number(year) || new Date().getFullYear(),
-            youTubeId: youTubeId.trim()
+            youTubeId: youTubeId.trim(),
+            addedBy: auth.user?._id,
+            ownerEmail: auth.user?.email
         };
     
         try {

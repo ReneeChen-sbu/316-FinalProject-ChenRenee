@@ -23,7 +23,7 @@ async function resetMongo() {
     const User = require("../../../models/user-model")
     const testData = require("../example-db-data.json")
 
-    console.log("Resetting the Mongo DB")
+
     await clearCollection(Playlist, "Playlist");
     await clearCollection(User, "User");
     await fillCollection(Playlist, "Playlist", testData.playlists);

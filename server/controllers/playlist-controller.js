@@ -75,7 +75,6 @@ const createPlaylist = async (req, res) => {
 
 // COPY Playlists
  const copyPlaylist = async (req, res) => {
-  console.log('SERVER: copyPlaylist route HIT, id =', req.params.id);
     try {
         const userId = req.userId;     
         const playlistId = req.params.id; 
@@ -194,10 +193,9 @@ const deletePlaylist = async (req, res) => {
 const getPlaylistById = async (req, res) => {
   try {
     const playlistId = req.params.id;
-    console.log('SERVER: getPlaylistById called with ID:', playlistId);
+
     
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
-        console.log('SERVER: Invalid playlist ID:', playlistId);
         return res.status(400).json({
             success: false,
             errorMessage: 'Invalid playlist ID'
@@ -260,10 +258,8 @@ const getPlaylistById = async (req, res) => {
 const getPlaylistPairs = async (req, res) => {
   try {
     const userId = req.userId;
-    console.log('getPlaylistPairs called for userId:', userId);
 
     if (!userId) {
-      console.log('No user ID, returning empty');
       return res.status(401).json({
         success: false,
         errorMessage: 'Not logged in'
@@ -273,14 +269,13 @@ const getPlaylistPairs = async (req, res) => {
     // Get user to verify
     const user = await User.findById(userId);
     if (!user) {
-      console.log('User not found:', userId);
       return res.status(404).json({
         success: false,
         errorMessage: 'User not found'
       });
     }
     
-    console.log('User found:', user.email);
+
 
     // Get playlists owned by this user AND public playlists from others
     const playlists = await Playlist.find({
@@ -293,18 +288,9 @@ const getPlaylistPairs = async (req, res) => {
     .populate('songs')
     .sort({ updatedAt: -1 });
 
-    console.log(`Found ${playlists.length} playlists for user ${user.email}`);
+
     
     const pairs = playlists.map(playlist => {
-      console.log('Playlist owner data:', {
-        ownerId: playlist.owner?._id,
-        ownerName: playlist.owner?.userName,
-        ownerEmail: playlist.owner?.email,
-        ownerAvatar: playlist.owner?.avatar,
-        hasAvatar: !!playlist.owner?.avatar,
-        avatarLength: playlist.owner?.avatar?.length
-      });
-      
       return {
         _id: playlist._id,
         name: playlist.name,
@@ -317,19 +303,13 @@ const getPlaylistPairs = async (req, res) => {
       };
     });
 
-    console.log('Sending pairs with avatars:', pairs.map(p => ({
-      name: p.name,
-      ownerName: p.ownerName,
-      hasAvatar: !!p.ownerAvatar,
-      avatarLength: p.ownerAvatar?.length
-    })));
+  
 
     return res.status(200).json({
       success: true,
       idNamePairs: pairs
     });
   } catch (err) {
-    console.error('getPlaylistPairs error:', err);
     return res.status(500).json({
       success: false,
       errorMessage: 'Failed to fetch playlists'
@@ -364,22 +344,14 @@ const getPlaylists = async (req, res) => {
 // UPDATE playlist
 const updatePlaylist = async (req, res) => {
   try {
-    console.log("SERVER: updatePlaylist called");
-    console.log("Body received:", JSON.stringify(req.body, null, 2));
-    
     const userId = req.userId;
     const playlistId = req.params.id;
     const updateData = req.body;
 
-    // DEBUG: Check what we're receiving
-    console.log("songs received type:", typeof updateData.songs);
-    console.log("songs received value:", updateData.songs);
-
-    // FIX: If songs is a string, parse it to array
+    // If songs is a string, parse it to array
     if (updateData.songs && typeof updateData.songs === 'string') {
       try {
         updateData.songs = JSON.parse(updateData.songs);
-        console.log("Parsed songs from string to array:", updateData.songs);
       } catch (parseErr) {
         console.error("Failed to parse songs:", parseErr);
         return res.status(400).json({
@@ -391,11 +363,9 @@ const updatePlaylist = async (req, res) => {
 
     // Make sure songs is an array
     if (!Array.isArray(updateData.songs)) {
-      console.error("songs is not an array after parsing:", updateData.songs);
       updateData.songs = [];
     }
 
-    console.log("Processed updateData.songs:", updateData.songs);
 
     if (!mongoose.Types.ObjectId.isValid(playlistId)) {
       return res.status(400).json({
@@ -442,7 +412,6 @@ const updatePlaylist = async (req, res) => {
     if (updateData.songs !== undefined) {
       // Make sure we're assigning an array
       playlist.songs = updateData.songs;
-      console.log("Setting playlist.songs to:", playlist.songs);
     }
     
     if (updateData.listenerCount !== undefined) {
@@ -455,7 +424,7 @@ const updatePlaylist = async (req, res) => {
     
     playlist.updatedAt = new Date();
 
-    console.log("Saving playlist with songs:", playlist.songs);
+
     
     const updated = await playlist.save();
     
@@ -464,14 +433,13 @@ const updatePlaylist = async (req, res) => {
       .populate('owner', 'userName email avatar')
       .populate('songs');
 
-    console.log("Successfully updated playlist");
+
 
     return res.status(200).json({
       success: true,
       playlist: populated
     });
   } catch (err) {
-    console.error('updatePlaylist error:', err);
     return res.status(500).json({
       success: false,
       errorMessage: 'Failed to update playlist: ' + err.message
@@ -483,24 +451,12 @@ const updatePlaylist = async (req, res) => {
 // GUEST / public library – get all published playlists
 const getGuestPlaylists = async (req, res) => {
   try {
-    console.log('SERVER: getGuestPlaylists called');
-
     const playlists = await Playlist.find({ published: true })
       .populate('owner', 'userName email avatar') 
       .populate('songs')
       .sort({ updatedAt: -1 });
 
-    console.log(`Found ${playlists.length} public playlists`);
-    
     const pairs = playlists.map(playlist => {
-      console.log('Guest playlist owner data:', {
-        ownerName: playlist.owner?.userName,
-        ownerEmail: playlist.owner?.email,
-        ownerAvatar: playlist.owner?.avatar,
-        hasAvatar: !!playlist.owner?.avatar,
-        avatarLength: playlist.owner?.avatar?.length
-      });
-      
       return {
         _id: playlist._id,
         name: playlist.name,
@@ -513,19 +469,12 @@ const getGuestPlaylists = async (req, res) => {
       };
     });
 
-    console.log('Sending guest pairs with avatars:', pairs.slice(0, 3).map(p => ({
-      name: p.name,
-      ownerName: p.ownerName,
-      hasAvatar: !!p.ownerAvatar,
-      avatarLength: p.ownerAvatar?.length
-    })));
 
     return res.status(200).json({
       success: true,
       idNamePairs: pairs
     });
   } catch (err) {
-    console.error('SERVER: getGuestPlaylists error:', err);
     return res.status(500).json({
       success: false,
       errorMessage: 'Server error: ' + err.message

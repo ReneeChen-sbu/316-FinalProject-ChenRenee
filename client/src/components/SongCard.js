@@ -62,7 +62,6 @@ export default function SongsCatalogScreen() {
 
     // Load songs on component mount
     useEffect(() => {
-        console.log('SongsCatalogScreen: Loading songs...');
         store.loadAllSongs();
     }, [auth.loggedIn]);
 
@@ -586,7 +585,7 @@ export default function SongsCatalogScreen() {
                 </MenuItem>
 
                 {/* Edit Song (only for owner) */}
-                {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
+                {isSongOwnedByUser(selectedSongForMenu) && (
                     <MenuItem
                         onClick={handleEditSong}
                         sx={{

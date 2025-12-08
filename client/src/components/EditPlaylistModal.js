@@ -76,11 +76,9 @@ export default function EditPlaylistModal({ open, onClose }) {
   };
 
   const handleClose = () => {
-    console.log("Closing EditPlaylistModal");
     saveTitleIfNeeded();
     
     if (store.currentList) {
-        console.log("Saving playlist before closing");
         store.updateCurrentList();
     }
 
@@ -92,28 +90,20 @@ export default function EditPlaylistModal({ open, onClose }) {
   // Song handlers 
 
   const handleAddSong = () => {
-    console.log("Current songs before adding:", playlist.songs);
-    console.log("Type of songs:", typeof playlist.songs);
-    
     if (!store.canAddNewSong()) return;
     store.addNewSong();
 };
 
 const handleEditSong = (index) => {
-    console.log("Edit song clicked at index:", index);
     const song = songs[index];
     if (!song) {
-        console.error("No song found at index:", index);
         return;
     }
-    
-    console.log("Song to edit:", song);
     
     // This should trigger the global edit song modal
     store.showEditSongModal(index, song);
     
-    // For debugging, check if modal opened
-    console.log("After showEditSongModal, isEditSongModalOpen:", store.isEditSongModalOpen());
+
 };
 
   const handleDuplicateSong = (index) => {

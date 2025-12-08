@@ -56,12 +56,12 @@ export default function SongsCatalogScreen() {
     const playlists = (store.idNamePairs || []).filter(
         (pl) => pl.ownerEmail === auth.user?.email
     );
-
+    
 
     // Load songs on component mount
     useEffect(() => {
-        console.log('SongsCatalogScreen: Loading songs...');
         store.loadAllSongs();
+        store.loadIdNamePairs();
     }, [auth.loggedIn]);
 
     // Search songs
@@ -173,16 +173,12 @@ export default function SongsCatalogScreen() {
 
     // EDIT SONG
     const handleEditSong = () => {
-        if (selectedSongForMenu) {
-            console.log('Opening edit modal for:', selectedSongForMenu);
-            
+        if (selectedSongForMenu) {    
             const displaySongs = store.isSongSearching
                 ? (store.filteredSongs || [])
                 : (store.allSongs || []);
             
             const songIndex = displaySongs.findIndex(song => song._id === selectedSongForMenu._id);
-            
-            console.log("Song index:", songIndex, "Song:", selectedSongForMenu);
             
             store.showEditSongModal(songIndex, selectedSongForMenu);
         }
@@ -192,9 +188,9 @@ export default function SongsCatalogScreen() {
     // REMOVE SONG
     const handleRemoveSong = () => {
         if (selectedSongForMenu) {
-            console.log('Opening remove modal for:', selectedSongForMenu);
             // First set the song to remove, then open the modal
             store.setSongToRemove(selectedSongForMenu);
+            store.openRemoveSongModal();
         }
         handleSongMenuClose();
     };
@@ -253,9 +249,18 @@ export default function SongsCatalogScreen() {
     };
 
     const isSongOwnedByUser = (song) => {
-        return auth.loggedIn && !auth.user?.isGuest && 
-               song.addedBy === auth.user?._id;
+        if (!auth.loggedIn || auth.user?.isGuest) return false;
+        
+    
+        
+        
+        const isAddedByUser = song.addedBy === auth.user?._id;
+        const isOwnerEmailMatch = song.ownerEmail === auth.user?.email;
+        const isUserIdInAddedBy = song.addedBy?._id === auth.user?._id; // Handle populated addedBy object
+        
+        return isAddedByUser || isOwnerEmailMatch || isUserIdInAddedBy;
     };
+    
 
     const displaySongs = store.isSongSearching
         ? (store.filteredSongs || [])

@@ -54,7 +54,6 @@ export async function loginUser(email, password) {
     if (response.ok && data.token) {
         // Save token to localStorage
         localStorage.setItem('token', data.token);
-        console.log("Token saved to localStorage");
     }
     
     return data;
@@ -63,7 +62,7 @@ export async function loginUser(email, password) {
 export async function logoutUser() {
     // Clear token from localStorage
     localStorage.removeItem('token');
-    console.log("Token removed from localStorage");
+
     
     const response = await fetch(`${baseURL}/logout/`, {
         method: 'GET',

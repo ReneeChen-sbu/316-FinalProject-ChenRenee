@@ -38,8 +38,6 @@ export default function MUIDeleteModal() {
     const playlistToDelete = store.listMarkedForDeletion;
     
     function handleConfirmDelete() {
-        console.log("DELETE CONFIRMED for playlist:", playlistToDelete?.name);
-        
         // Delete the marked playlist
         if (playlistToDelete && store.listIdMarkedForDeletion) {
             store.deleteMarkedList();
@@ -47,7 +45,6 @@ export default function MUIDeleteModal() {
     }
     
     function handleCancelDelete() {
-        console.log("DELETE CANCELLED");
         store.hideModals();
     }
     

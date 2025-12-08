@@ -25,12 +25,7 @@ export default function MUIEditSongModal() {
 
     useEffect(() => {
         const shouldOpen = store.currentModal === CurrentModal.EDIT_SONG;
-        console.log("Modal useEffect:", {
-            shouldOpen,
-            currentModal: store.currentModal,
-            currentSong: store.currentSong,
-            currentIndex: store.currentSongIndex
-        });
+        
         
         if (shouldOpen !== isModalOpen) {
             setIsModalOpen(shouldOpen);
@@ -45,7 +40,7 @@ export default function MUIEditSongModal() {
                 setYear(store.currentSong.year || '');
                 setYouTubeId(store.currentSong.youTubeId || '');
                 
-                console.log("Modal opened with song:", store.currentSong);
+               
             } else {
                 // Clear when closing
                 setCurrentSong(null);
@@ -60,12 +55,10 @@ export default function MUIEditSongModal() {
 
     // Don't render if modal is closed or no song
     if (!isModalOpen || !currentSong) {
-        console.log("Modal not rendering:", { isModalOpen, hasSong: !!currentSong });
         return null;
     }
 
     const handleConfirm = () => {
-        console.log("Confirming edit for song:", currentIndex);
         const newSongData = {
             title: title.trim() || 'Untitled',
             artist: artist.trim() || 'Unknown',
@@ -78,14 +71,11 @@ export default function MUIEditSongModal() {
     };
 
     const handleCancel = () => {
-        console.log("Cancelling edit modal");
         store.hideModals();
     };
 
-    console.log("Rendering modal with:", { title, artist, year, youTubeId });
-
     if (!isModalOpen || !currentSong) {
-        console.log("Modal not rendering:", { isModalOpen, hasSong: !!currentSong });
+        
         return null;
     }
 

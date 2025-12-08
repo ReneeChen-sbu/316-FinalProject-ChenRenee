@@ -2,8 +2,6 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:400
 
 async function fetchJSON(path, options = {}) {
     const url = `${API_BASE_URL}${path}`;
-    console.log('DEBUG fetchJSON: requesting', url);
-
     const token = localStorage.getItem('token');
 
     const headers = {
@@ -21,15 +19,10 @@ async function fetchJSON(path, options = {}) {
     const text = await response.text();
     const contentType = response.headers.get('content-type') || '';
 
-    console.log('DEBUG fetchJSON response status:', response.status);
-    console.log('DEBUG fetchJSON content-type:', contentType);
-    console.log('DEBUG fetchJSON raw text (first 200 chars):', text.slice(0, 200));
-
     let data = {};
     if (contentType.includes('application/json')) {
         data = text ? JSON.parse(text) : {};
     } else {
-        console.error('Expected JSON but got non-JSON response body.');
         throw new Error(
             `Server returned non-JSON response (status ${response.status}). Check URL/path.`
         );

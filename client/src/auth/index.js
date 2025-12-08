@@ -3,7 +3,7 @@ import { useHistory } from 'react-router-dom'
 import authRequestSender from './requests'
 
 const AuthContext = createContext();
-console.log("create AuthContext: " + AuthContext);
+
 
 // THESE ARE ALL THE TYPES OF UPDATES TO OUR AUTH STATE THAT CAN BE PROCESSED
 export const AuthActionType = {
@@ -71,7 +71,6 @@ function AuthContextProvider(props) {
 
     auth.updateUserProfile = async function(userData) {
         try {
-            console.log('Updating user profile:', userData);
             
             const data = await authRequestSender.updateUserProfile(userData);
             
@@ -124,7 +123,6 @@ function AuthContextProvider(props) {
     
 
     auth.registerUser = async function(userName, email, password, passwordVerify, avatar = null) {
-        console.log("REGISTERING USER");
         try {   
             const data = await authRequestSender.registerUser(
                 userName,
@@ -200,9 +198,7 @@ function AuthContextProvider(props) {
         }
     }
 
-    auth.loginAsGuest = function() {
-        console.log("LOGGING IN AS GUEST");
-        
+    auth.loginAsGuest = function() { 
         // Create guest user object
         const guestUser = {
           userName: "Guest",

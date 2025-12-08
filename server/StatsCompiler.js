@@ -34,7 +34,7 @@ for (let i = 0; i < songsList.length; i++) {
     output += song.title + " by " + song.artist + "(" + song.year + "), Count: " + song.count + "\n";
 }
 fs.writeFileSync('SongsSortedByTitle.txt', output, 'utf-8');
-console.log("SongsSortedByTitle.txt generated");
+
 
 // SORT BY TITLE
 songsList.sort((a, b) => a.artist.localeCompare(b.artist));
@@ -44,7 +44,7 @@ for (let i = 0; i < songsList.length; i++) {
     output += song.artist + ": " + song.title + " (" +  song.year + "), Count: " + song.count + "\n";
 }
 fs.writeFileSync('SongsSortedByArtist.txt', output, 'utf-8');
-console.log("SongsSortedByArtist.txt generated");
+
 
 // SORT BY YEAR
 songsList.sort((a, b) => a.year - b.year);
@@ -54,7 +54,7 @@ for (let i = 0; i < songsList.length; i++) {
     output += song.year + ": " + song.title + " by " + song.artist + ", Count: " + song.count + "\n";
 }
 fs.writeFileSync('SongsSortedByYear.txt', output, 'utf-8');
-console.log("SongsSortedByYear.txt generated");
+
 
 // SORT BY COUNT
 songsList.sort((a, b) => b.count - a.count);
@@ -64,4 +64,3 @@ for (let i = 0; i < songsList.length; i++) {
     output += song.title + " by " + song.artist + " (" + song.year + "), Count: " + song.count + "\n";
 }
 fs.writeFileSync('SongsSortedByCount.txt', output, 'utf-8');
-console.log("SongsSortedByCount.txt generated");

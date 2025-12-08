@@ -21,7 +21,6 @@ function initPlayer() {
 // THIS OVERRIDES A GLOBAL FUNCTION THAT WILL BE CALLED AS A 
 // CALLBACK BECUASE WE USED THE YOUTUBE IFRAME API
 function onYouTubeIframeAPIReady() {
-  console.log("onYouTubeIframeAPIReady()");
   player = new YT.Player('youtube_test_player', {
     height: '390',
     width: '640',
@@ -45,45 +44,36 @@ function onPlayerError(event) {
   incSong();
 }
 function onPlayerReady(event) {
-  console.log('onPlayerReady()');
   event.target.playVideo();
 }
 function onPlayerStateChange(event) {
-  console.log("onPlayerStateChange() event.data: " + event.data);
   let playerStatus = event.data;
   let color;
   if (playerStatus == -1) {
     // VIDEO UNSTARTED
     color = "#37474F";
-    console.log("Video unstarted");
   } else if (playerStatus == 0) {
     // THE VIDEO HAS COMPLETED PLAYING
     color = "#FFFF00";
-    console.log("Video ended");
   } else if (playerStatus == 1) {
     // THE VIDEO IS PLAYING
     color = "#33691E";
-    console.log("Video playing");
     incSong();
   } else if (playerStatus == 2) {
     // THE VIDEO IS PAUSED
     color = "#DD2C00";
-    console.log("Video paused");
   } else if (playerStatus == 3) {
     // THE VIDEO IS BUFFERING
     color = "#AA00FF";
-    console.log("Video buffering");
   } else if (playerStatus == 5) {
     // THE VIDEO HAS BEEN CUED
     color = "#FF6DOO";
-    console.log("Video cued");
   }
   if (color) {
     document.getElementById('youtube_test_player').style.borderColor = color;
   }
 }
 function stopVideo() {
-  console.log("stopVideo()");
   player.stopVideo();
 }
 
@@ -116,7 +106,6 @@ function incSong() {
 }
 
 function saveUnembeddableSongs() {
-  console.log("saveUnembeddableSongs");
   fetch('http://localhost:4000/saveData', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

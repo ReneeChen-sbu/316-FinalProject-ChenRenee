@@ -33,8 +33,6 @@ export default function EditAccountScreen() {
 
     useEffect(() => {
         if (auth.user) {
-            console.log('User data for editing:', auth.user);
-    
             setFormData(prev => ({
                 ...prev,
                 userName: auth.user.userName || '',  
@@ -95,8 +93,6 @@ export default function EditAccountScreen() {
             
             // Use Base64 string directly for preview
             setAvatarPreview(base64);
-            
-            console.log('Image converted to Base64, length:', base64.length);
             
         } catch (error) {
             console.error('Error converting image to Base64:', error);
@@ -162,19 +158,12 @@ export default function EditAccountScreen() {
             // Send avatar as Base64 string
             if (avatarBase64) {
                 updateData.avatar = avatarBase64;
-                console.log('Sending Base64 avatar, length:', avatarBase64.length);
             }
-    
-            console.log('Sending update data:', { 
-                ...updateData, 
-                avatar: avatarBase64 ? `Base64 string (${avatarBase64.length} chars)` : 'none' 
-            });
             
             await auth.updateUserProfile(updateData);
             history.push('/home');
     
         } catch (error) {
-            console.error('Update error:', error);
             const errorMessage = error.message || 'Update failed. Please try again.';
             alert(`Update failed: ${errorMessage}`);
         }
