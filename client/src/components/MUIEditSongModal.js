@@ -84,18 +84,12 @@ export default function MUIEditSongModal() {
 
     console.log("Rendering modal with:", { title, artist, year, youTubeId });
 
+    if (!isModalOpen || !currentSong) {
+        console.log("Modal not rendering:", { isModalOpen, hasSong: !!currentSong });
+        return null;
+    }
+
     return (
-        <Box
-            sx={{
-                position: 'fixed',
-                inset: 0,
-                bgcolor: 'rgba(0,0,0,0.4)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 1400
-            }}
-        >
             <Box
                 sx={{
                     position: 'absolute',
@@ -264,6 +258,5 @@ export default function MUIEditSongModal() {
                     </Grid>
                 </Box>
             </Box>
-        </Box>
     );
 }
