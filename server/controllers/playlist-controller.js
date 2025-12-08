@@ -447,6 +447,137 @@ const updatePlaylist = async (req, res) => {
   }
 };
 
+const addSongToPlaylist = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { id: playlistId, songId } = req.params;
+   if (!mongoose.Types.ObjectId.isValid(playlistId) || !mongoose.Types.ObjectId.isValid(songId)) {
+      return res.status(400).json({
+       success: false,
+        errorMessage: 'Invalid playlist or song ID'
+     });
+    }
+  
+     const [playlist, song] = await Promise.all([
+       Playlist.findById(playlistId),
+      Song.findById(songId)
+     ]);
+ 
+    if (!playlist) {
+    return res.status(404).json({ success: false, errorMessage: 'Playlist not found' });
+    }
+   if (!song) {
+      return res.status(404).json({ success: false, errorMessage: 'Song not found' });
+    }
+     if (playlist.owner.toString() !== userId) {
+      return res.status(403).json({ success: false, errorMessage: 'Access denied' });
+     }
+    const currentSongs = Array.isArray(playlist.songs) ? playlist.songs : [];
+    const alreadyIncluded = currentSongs.some(existing =>
+       existing.title === song.title &&
+       existing.artist === song.artist &&
+       existing.year === song.year
+    );
+    if (alreadyIncluded) {
+      return res.status(400).json({
+  
+          success: false,
+ 
+          errorMessage: 'Song is already in this playlist'
+        });
+     }
+     playlist.songs = [
+        ...currentSongs,
+      {
+          title: song.title,
+          artist: song.artist,
+          year: song.year,
+         youTubeId: song.youTubeId
+       }
+     ];
+    playlist.updatedAt = new Date();
+    await playlist.save();
+      await Song.findByIdAndUpdate(songId, { $inc: { playlistCount: 1 } });
+     const populated = await Playlist.findById(playlistId)
+        .populate('owner', 'userName email avatar')
+        .populate('songs');
+     return res.status(200).json({
+       success: true,
+      playlist: populated
+     });
+    } catch (err) {
+      console.error('addSongToPlaylist error:', err);
+     return res.status(500).json({
+        success: false,
+ 
+       errorMessage: 'Failed to add song to playlist'
+ 
+    });
+     }
+};
+
+
+// REMOVE a catalog song from a playlist (owned by logged-in user)
+ const removeSongFromPlaylist = async (req, res) => {
+   try {
+    const userId = req.userId;
+    const { id: playlistId, songId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId) || !mongoose.Types.ObjectId.isValid(songId)) {
+      return res.status(400).json({
+       success: false,
+        errorMessage: 'Invalid playlist or song ID'
+      });
+    }
+     const [playlist, song] = await Promise.all([
+      Playlist.findById(playlistId),
+      Song.findById(songId)
+    ]);
+     if (!playlist) {
+        return res.status(404).json({ success: false, errorMessage: 'Playlist not found' });
+      }
+    if (!song) {
+       return res.status(404).json({ success: false, errorMessage: 'Song not found' });
+      }
+    if (playlist.owner.toString() !== userId) {
+      return res.status(403).json({ success: false, errorMessage: 'Access denied' });
+   }
+    const currentSongs = Array.isArray(playlist.songs) ? playlist.songs : [];
+     const filteredSongs = currentSongs.filter(existing => !(
+      existing.title === song.title &&
+     existing.artist === song.artist &&
+     existing.year === song.year &&
+      existing.youTubeId === song.youTubeId
+     ));
+    if (filteredSongs.length === currentSongs.length) {
+      return res.status(404).json({
+        success: false,
+        errorMessage: 'Song not found in playlist'
+       });
+     }
+  playlist.songs = filteredSongs;
+    playlist.updatedAt = new Date();
+    await playlist.save();
+     await Song.findByIdAndUpdate(songId, { $inc: { playlistCount: -1 } });
+     const populated = await Playlist.findById(playlistId)
+     .populate('owner', 'userName email avatar')
+     .populate('songs');
+      return res.status(200).json({
+      success: true,
+      playlist: populated
+     });
+   } catch (err) {
+    console.error('removeSongFromPlaylist error:', err);
+     return res.status(500).json({
+      success: false,
+     errorMessage: 'Failed to remove song from playlist'
+    });
+    }
+
+ };
+
+
+
 
 // GUEST / public library – get all published playlists
 const getGuestPlaylists = async (req, res) => {
@@ -489,6 +620,8 @@ module.exports = {
   getPlaylistPairs,
   getPlaylists,
   updatePlaylist,
+  addSongToPlaylist,
+ removeSongFromPlaylist,
   copyPlaylist,
   getGuestPlaylists
 };

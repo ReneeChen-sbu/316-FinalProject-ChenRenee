@@ -16,6 +16,8 @@ router.post('/', requireAuth, PlaylistController.createPlaylist);
 router.put('/:id', requireAuth, PlaylistController.updatePlaylist);
 router.delete('/:id', requireAuth, PlaylistController.deletePlaylist);
 router.post('/:id/copy', requireAuth, PlaylistController.copyPlaylist);
+router.post('/:id/songs/:songId', requireAuth, PlaylistController.addSongToPlaylist);
+router.delete('/:id/songs/:songId', requireAuth, PlaylistController.removeSongFromPlaylist);
 
 
 

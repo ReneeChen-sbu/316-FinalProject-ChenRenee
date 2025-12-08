@@ -15,7 +15,10 @@ import {
     Card,
     CardContent,
     Menu,
-    Chip
+    Chip,
+    List,
+    ListItem,
+    ListItemText
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -47,15 +50,21 @@ export default function SongsCatalogScreen() {
     // Menu states
     const [songMenuAnchor, setSongMenuAnchor] = useState(null);
     const [selectedSongForMenu, setSelectedSongForMenu] = useState(null);
-    const [playlistSubmenuAnchor, setPlaylistSubmenuAnchor] = useState(null);
+    const [showPlaylistPanel, setShowPlaylistPanel] = useState(false);
     
     const [selectedSongId, setSelectedSongId] = useState(null);
     const [currentVideoSong, setCurrentVideoSong] = useState(null);
     
 
-    const playlists = (store.idNamePairs || []).filter(
-        (pl) => pl.ownerEmail === auth.user?.email
-    );
+    const playlists = (store.idNamePairs || [])
+        .filter((pl) => pl.ownerEmail === auth.user?.email)
+          .sort((a, b) => {
+            const getDate = (item) => new Date(item.lastAccessed || item.updatedAt || 0).getTime();
+              return getDate(b) - getDate(a);
+          });
+    
+  
+         
     
 
     // Load songs on component mount
@@ -109,37 +118,19 @@ export default function SongsCatalogScreen() {
         event.stopPropagation();
         setSelectedSongForMenu(song);
         setSongMenuAnchor(event.currentTarget);
-        setPlaylistSubmenuAnchor(null);
+        setShowPlaylistPanel(true);
     };
     
     const handleSongMenuClose = () => {
         setSongMenuAnchor(null);
         setSelectedSongForMenu(null);
-        setPlaylistSubmenuAnchor(null);
+        setShowPlaylistPanel(false);
     };
     
     // Handle hovering over "Add to Playlist" to show submenu
-    const handleAddToPlaylistMouseEnter = (event) => {
+    const handleShowPlaylistPanel = (event) => {
         event.stopPropagation();
-        if (songMenuAnchor) {
-            setPlaylistSubmenuAnchor(songMenuAnchor);
-        }
-    };
-    
-    const handleAddToPlaylistMouseLeave = () => {
-        setTimeout(() => {
-            if (!document.querySelector('.playlist-submenu:hover')) {
-                setPlaylistSubmenuAnchor(null);
-            }
-        }, 100);
-    };
-    
-    const handlePlaylistSubmenuMouseEnter = () => {
-        // Keep submenu open when mouse enters it
-    };
-    
-    const handlePlaylistSubmenuMouseLeave = () => {
-        setPlaylistSubmenuAnchor(null);
+        setShowPlaylistPanel(true);
     };
     
     // Add song to specific playlist
@@ -547,7 +538,7 @@ export default function SongsCatalogScreen() {
                 )}
             </Box>
 
-            {/* MAIN SONG MENU */}
+            {/* Main song menu with playlist panel */}
             <Menu
                 anchorEl={songMenuAnchor}
                 open={Boolean(songMenuAnchor)}
@@ -558,108 +549,177 @@ export default function SongsCatalogScreen() {
                         overflow: 'visible',
                         mt: 1,
                         boxShadow: 4,
-                        minWidth: 200
+                        p: 0
                     }
                 }}
             >
-                {/* Add to Playlist with hover functionality */}
-                <MenuItem
-                    onMouseEnter={handleAddToPlaylistMouseEnter}
-                    onMouseLeave={handleAddToPlaylistMouseLeave}
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        backgroundColor: playlistSubmenuAnchor ? '#f3e5f5' : 'white',
-                        '&:hover': {
-                            backgroundColor: '#f3e5f5'
-                        }
-                    }}
-                >
-                    Add to Playlist
-                    <ArrowRightIcon fontSize="small" />
-                </MenuItem>
-
-                {/* Edit Song – ONLY IF USER OWNS THE SONG */}
-                {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
-                    <MenuItem
-                    onClick={handleEditSong}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        '&:hover': { backgroundColor: '#e1bee7' }
-                    }}
-                >
-                    <EditIcon fontSize="small" />
-                    Edit Song
-                </MenuItem>
-            )}
-            
-                {/* Remove from Catalog – ONLY IF USER OWNS THE SONG */}
-                 {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
-                     <MenuItem
-                     onClick={handleRemoveSong}
+               <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
+                  <Box
                      sx={{
-                         display: 'flex',
-                         alignItems: 'center',
-                         gap: 1,
-                         '&:hover': { backgroundColor: '#ffcdd2' }
-                     }}
-                 >
-                     <DeleteIcon fontSize="small" />
-                     Remove from Catalog
-                 </MenuItem>
-             )}
-             
-            </Menu>
-
-            {/* PLAYLIST SUBMENU */}
-            <Menu
-                anchorEl={playlistSubmenuAnchor}
-                open={Boolean(playlistSubmenuAnchor)}
-                onClose={() => setPlaylistSubmenuAnchor(null)}
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-                PaperProps={{
-                    className: 'playlist-submenu',
-                    sx: {
-                        ml: 1,
-                        maxHeight: 300,
-                        width: 220,
-                        backgroundColor: '#f8bbd0',
-                        borderRadius: 2,
-                        overflow: 'auto',
-                        '&::-webkit-scrollbar': { width: '6px' },
-                        '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
-                        '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
-                    },
-                    onMouseEnter: handlePlaylistSubmenuMouseEnter,
-                    onMouseLeave: handlePlaylistSubmenuMouseLeave
-                }}
-            >
-                {playlists.length === 0 ? (
-                    <MenuItem disabled sx={{ opacity: 0.7 }}>
-                        No Playlists Yet
-                    </MenuItem>
-                ) : (
-                    playlists.map((playlist) => (
+                            minWidth: 200,
+                           bgcolor: '#d1c4e9',
+                           borderTopLeftRadius: 8,
+                           borderBottomLeftRadius: 8,
+                           overflow: 'hidden'
+                       }}
+                  >
                         <MenuItem
-                            key={playlist._id}
-                            onClick={() => handleAddSongToPlaylist(playlist)}
+                            onClick={handleShowPlaylistPanel}
                             sx={{
-                                backgroundColor: '#f8bbd0',
-                                borderBottom: '1px solid rgba(0,0,0,0.15)',
-                                '&:last-of-type': { borderBottom: 'none' },
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                bgcolor: showPlaylistPanel ? '#c5b0f5' : '#d1c4e9',
+                               color: '#2f1c46',
+                                fontWeight: 600,
                                 '&:hover': {
-                                    backgroundColor: '#f48fb1'
+                                    backgroundColor: '#c5b0f5'
                                 }
                             }}
                         >
-                            {playlist.name}
+                            Add to Playlist
+
+                           <ArrowRightIcon fontSize="small" />
                         </MenuItem>
-                    ))
-                )}
+
+                    {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
+
+                           <MenuItem
+
+                                onClick={handleEditSong}
+
+                                sx={{
+
+                                   display: 'flex',
+
+                                   alignItems: 'center',
+
+                                   gap: 1,
+
+                                    color: '#2f1c46',
+
+                                    fontWeight: 600,
+
+                                   '&:hover': { backgroundColor: '#e1bee7' }
+
+                                }}
+
+                            >
+
+                                <EditIcon fontSize="small" />
+
+                                Edit Song
+
+                            </MenuItem>
+
+                        )}
+
+
+
+                        {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
+
+                            <MenuItem
+
+                                onClick={handleRemoveSong}
+
+                               sx={{
+
+                                    display: 'flex',
+
+                                   alignItems: 'center',
+
+                                    gap: 1,
+
+                                    color: '#2f1c46',
+
+                                    fontWeight: 600,
+
+                                   '&:hover': { backgroundColor: '#ffcdd2' }
+
+                               }}
+
+                            >
+
+                                <DeleteIcon fontSize="small" />
+
+                                Remove from Catalog
+
+                            </MenuItem>
+
+                        )}
+
+                    </Box>
+
+                   {showPlaylistPanel && (
+
+                        <Box
+
+                            sx={{
+
+                               width: 220,
+
+                                bgcolor: '#e8b4b4',
+                                borderTopRightRadius: 8,
+                                borderBottomRightRadius: 8,
+                                borderLeft: '4px solid #d1c4e9',
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}
+
+                        >
+
+                            <List dense disablePadding sx={{ py: 1 }}>
+
+                                {playlists.length === 0 ? (
+                                    <ListItem sx={{ py: 1.5 }}>
+                                        <ListItemText
+                                         primary="No Playlists Yet"
+                                          sx={{ color: '#4a2f2f', textAlign: 'center' }}
+                                       />
+
+                                   </ListItem>
+                               ) : (
+
+                                   playlists.map((playlist) => (
+
+                                       <ListItem
+
+                                            key={playlist._id}
+
+                                           button
+
+                                            onClick={() => handleAddSongToPlaylist(playlist)}
+
+                                          sx={{
+
+                                               borderBottom: '1px solid rgba(0,0,0,0.08)',
+
+                                               '&:last-of-type': { borderBottom: 'none' },
+
+                                                '&:hover': { bgcolor: '#f0a4a4' }
+
+                                           }}
+
+                                        >
+                                            <ListItemText
+                                               primary={playlist.name}
+                                               sx={{ color: '#4a2f2f', fontWeight: 700 }}
+
+                                            />
+
+                                       </ListItem>
+
+                                    ))
+
+                               )}
+
+                            </List>
+
+                       </Box>
+
+                    )}
+
+                </Box>
             </Menu>
 
             {/* Modals */}
