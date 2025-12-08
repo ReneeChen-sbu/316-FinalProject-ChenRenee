@@ -1,0 +1,493 @@
+import { useContext, useEffect, useState } from 'react';
+import AuthContext from '../auth'; 
+import { GlobalStoreContext } from '../store';
+import { 
+    Box, 
+    Button, 
+    TextField, 
+    Typography, 
+    Select, 
+    MenuItem, 
+    FormControl,
+    Alert,
+    Snackbar,
+    IconButton,
+    Card,
+    CardContent,
+    CardActions,
+    Menu,
+    Chip
+} from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import MUIEditSongModal from './MUIEditSongModal';
+import MUIRemoveSongModal from './MUIRemoveSongModal';
+import MUIAddSongModal from './MUIAddSongModal';
+
+export default function SongsCatalogScreen() {
+    const { store } = useContext(GlobalStoreContext);
+    const { auth } = useContext(AuthContext); 
+
+    const [titleFilter, setTitleFilter] = useState('');
+    const [artistFilter, setArtistFilter] = useState('');
+    const [yearFilter, setYearFilter] = useState('');
+    const [sortBy, setSortBy] = useState('listens-hi-lo');
+    const [isCreatingNew, setIsCreatingNew] = useState(false);
+    const [snackbar, setSnackbar] = useState({
+        open: false,
+        message: '',
+        severity: 'success'
+    });
+    const [songMenuAnchor, setSongMenuAnchor] = useState(null);
+    const [selectedSong, setSelectedSong] = useState(null);
+    
+    // Song menu state
+    const [songMenuOpen, setSongMenuOpen] = useState(false);
+    const [selectedSongForMenu, setSelectedSongForMenu] = useState(null);
+
+    // Load songs on component mount
+    useEffect(() => {
+        console.log('SongsCatalogScreen: Loading songs...');
+        store.loadAllSongs();
+    }, [auth.loggedIn]);
+
+    // Search songs
+    const handleSearch = () => {
+        console.log('Search songs triggered');
+        console.log('Filters:', { titleFilter, artistFilter, yearFilter });
+        
+        const searchTerms = [];
+        if (titleFilter) {
+            searchTerms.push(`title:${titleFilter}`);
+        }
+        if (artistFilter) {
+            searchTerms.push(`artist:${artistFilter}`);
+        }
+        if (yearFilter) {
+            searchTerms.push(`year:${yearFilter}`);
+        }
+        
+        const query = searchTerms.join(' ');
+        console.log('Final search query:', query);
+        
+        store.searchSongs(query);
+    };
+
+    // Pressing Enter in any filter runs search
+    const handleSearchKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleSearch();
+        }
+    };
+
+    const handleClear = () => {
+        setTitleFilter('');
+        setArtistFilter('');
+        setYearFilter('');
+        store.clearSongSearch();
+        
+        setSnackbar({
+            open: true,
+            message: 'Search filters cleared',
+            severity: 'info'
+        });
+    };
+
+    // Create new song
+    const handleCreateNewSong = () => {
+        store.openNewSongModal();
+    };
+
+    // Play song (preview)
+    const handlePlaySong = (song) => {
+        console.log('Playing song:', song);
+        // This would open a player or play the YouTube video
+        setSnackbar({
+            open: true,
+            message: `Playing: ${song.title}`,
+            severity: 'info'
+        });
+    };
+
+    // Song menu handlers
+    const handleSongMenuOpen = (event, song) => {
+        event.stopPropagation();
+        setSelectedSongForMenu(song);
+        setSongMenuAnchor(event.currentTarget);
+    };
+
+    const handleSongMenuClose = () => {
+        setSongMenuAnchor(null);
+        setSelectedSongForMenu(null);
+    };
+
+    const handleAddToPlaylist = () => {
+        if (selectedSongForMenu) {
+            store.setSongToAddToPlaylist(selectedSongForMenu);
+            store.openAddToPlaylistModal();
+        }
+        handleSongMenuClose();
+    };
+
+    const handleEditSong = () => {
+        if (selectedSongForMenu) {
+            store.setSongToEdit(selectedSongForMenu);
+            store.openEditSongModal();
+        }
+        handleSongMenuClose();
+    };
+
+    const handleRemoveSong = () => {
+        if (selectedSongForMenu) {
+            store.setSongToRemove(selectedSongForMenu);
+            store.openRemoveSongModal();
+        }
+        handleSongMenuClose();
+    };
+
+    // Sort songs
+    const sortSongs = (songs) => {
+        if (!songs || !Array.isArray(songs)) return [];
+        
+        const sorted = [...songs];
+        switch (sortBy) {
+            case 'listens-hi-lo':
+                return sorted.sort((a, b) => (b.listens || 0) - (a.listens || 0));
+            case 'listens-lo-hi':
+                return sorted.sort((a, b) => (a.listens || 0) - (b.listens || 0));
+            case 'playlists-hi-lo':
+                return sorted.sort((a, b) => (b.playlistCount || 0) - (a.playlistCount || 0));
+            case 'playlists-lo-hi':
+                return sorted.sort((a, b) => (a.playlistCount || 0) - (b.playlistCount || 0));
+            case 'title-a-z':
+                return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+            case 'title-z-a':
+                return sorted.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+            case 'artist-a-z':
+                return sorted.sort((a, b) => (a.artist || '').localeCompare(b.artist || ''));
+            case 'artist-z-a':
+                return sorted.sort((a, b) => (b.artist || '').localeCompare(a.artist || ''));
+            case 'year-hi-lo':
+                return sorted.sort((a, b) => (b.year || 0) - (a.year || 0));
+            case 'year-lo-hi':
+                return sorted.sort((a, b) => (a.year || 0) - (b.year || 0));
+            default:
+                return sorted;
+        }
+    };
+
+    const handleCloseSnackbar = () => {
+        setSnackbar({ ...snackbar, open: false });
+    };
+
+    // Check if song is owned by current user (for UI highlighting)
+    const isSongOwnedByUser = (song) => {
+        return auth.loggedIn && !auth.user?.isGuest && 
+               song.addedBy === auth.user._id;
+    };
+
+    const displaySongs = store.isSongSearching
+        ? (store.filteredSongs || [])
+        : (store.allSongs || []);
+    
+    const sortedSongs = sortSongs(displaySongs);
+
+    return (
+        <Box sx={{ 
+            display: 'flex', 
+            minHeight: 'calc(100vh - 120px)',
+            backgroundColor: '#f8e0f0',
+            p: 3
+        }}>
+            {/* Left sidebar - Filters */}
+            <Box sx={{ width: '33%', pr: 3 }}>
+                <Typography 
+                    variant="h4" 
+                    sx={{ 
+                        color: '#2196F3', // Blue color for Song Catalog
+                        fontWeight: 'bold', 
+                        mb: 3 
+                    }}
+                >
+                    Songs
+                </Typography>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <TextField
+                        placeholder="by Title"
+                        value={titleFilter}
+                        onChange={(e) => setTitleFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                backgroundColor: '#bbdefb', // Light blue background
+                                '& fieldset': { border: 'none' }
+                            }
+                        }}
+                    />
+                    <TextField
+                        placeholder="by Artist"
+                        value={artistFilter}
+                        onChange={(e) => setArtistFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                backgroundColor: '#bbdefb',
+                                '& fieldset': { border: 'none' }
+                            }
+                        }}
+                    />
+                    <TextField
+                        placeholder="by Year"
+                        value={yearFilter}
+                        onChange={(e) => setYearFilter(e.target.value)}
+                        onKeyDown={handleSearchKeyDown}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                            '& .MuiOutlinedInput-root': {
+                                backgroundColor: '#bbdefb',
+                                '& fieldset': { border: 'none' }
+                            }
+                        }}
+                    />
+                </Box>
+
+                <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
+                    <Button
+                        variant="contained"
+                        startIcon={<SearchIcon />}
+                        onClick={handleSearch}
+                        sx={{
+                            flex: 1,
+                            backgroundColor: '#2196F3', // Blue for Song Catalog
+                            borderRadius: '20px',
+                            textTransform: 'none',
+                            '&:hover': { backgroundColor: '#1976D2' }
+                        }}
+                    >
+                        Search
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleClear}
+                        sx={{
+                            flex: 1,
+                            backgroundColor: '#2196F3',
+                            borderRadius: '20px',
+                            textTransform: 'none',
+                            '&:hover': { backgroundColor: '#1976D2' }
+                        }}
+                    >
+                        Clear
+                    </Button>
+                </Box>
+
+                {/* Search Status */}
+                {store.isSongSearching && (
+                    <Box sx={{ mt: 2, p: 2, backgroundColor: '#e3f2fd', borderRadius: 2 }}>
+                        <Typography variant="body2" color="#2196F3">
+                            Found {store.filteredSongs ? store.filteredSongs.length : 0} song
+                            {store.filteredSongs && store.filteredSongs.length !== 1 ? 's' : ''}
+                            {store.songSearchQuery && (
+                                <Typography
+                                    variant="caption"
+                                    component="div"
+                                    sx={{ mt: 0.5, color: '#666' }}
+                                >
+                                    Search: {store.songSearchQuery}
+                                </Typography>
+                            )}
+                        </Typography>
+                    </Box>
+                )}
+            </Box>
+
+            {/* Right content - Songs */}
+            <Box sx={{ flex: 1, backgroundColor: '#f5f5dc', borderRadius: 2, p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography sx={{ fontWeight: 600, color: '#666' }}>Sort:</Typography>
+                        <FormControl size="small">
+                            <Select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                sx={{ minWidth: 180 }}
+                            >
+                                <MenuItem value="listens-hi-lo">Listens (Hi-Lo)</MenuItem>
+                                <MenuItem value="listens-lo-hi">Listens (Lo-Hi)</MenuItem>
+                                <MenuItem value="playlists-hi-lo">Playlists (Hi-Lo)</MenuItem>
+                                <MenuItem value="playlists-lo-hi">Playlists (Lo-Hi)</MenuItem>
+                                <MenuItem value="title-a-z">Title (A-Z)</MenuItem>
+                                <MenuItem value="title-z-a">Title (Z-A)</MenuItem>
+                                <MenuItem value="artist-a-z">Artist (A-Z)</MenuItem>
+                                <MenuItem value="artist-z-a">Artist (Z-A)</MenuItem>
+                                <MenuItem value="year-hi-lo">Year (Hi-Lo)</MenuItem>
+                                <MenuItem value="year-lo-hi">Year (Lo-Hi)</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
+                    <Typography sx={{ fontWeight: 600, color: '#666' }}>
+                        {sortedSongs ? sortedSongs.length : 0} Song
+                        {sortedSongs && sortedSongs.length !== 1 ? 's' : ''}
+                        {store.isSongSearching && ' (filtered)'}
+                    </Typography>
+                </Box>
+
+                {/* Song Cards */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
+                    {sortedSongs && sortedSongs.length > 0 ? (
+                        sortedSongs.map((song) => (
+                            <Card 
+                                key={song._id} 
+                                sx={{ 
+                                    borderRadius: 2,
+                                    backgroundColor: 'white',
+                                    border: isSongOwnedByUser(song) ? '2px solid #2196F3' : '1px solid #e0e0e0',
+                                    position: 'relative',
+                                    '&:hover': {
+                                        boxShadow: 3,
+                                        transform: 'translateY(-2px)',
+                                        transition: 'all 0.2s'
+                                    }
+                                }}
+                            >
+                                <CardContent sx={{ '&:last-child': { pb: 2 } }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                        <Box sx={{ flex: 1 }}>
+                                            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
+                                                {song.title} by {song.artist} ({song.year})
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+                                                <Chip 
+                                                    label={`Listens: ${song.listens?.toLocaleString() || 0}`}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="primary"
+                                                />
+                                                <Chip 
+                                                    label={`Playlists: ${song.playlistCount || 0}`}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="secondary"
+                                                />
+                                            </Box>
+                                        </Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <IconButton 
+                                                onClick={() => handlePlaySong(song)}
+                                                size="small"
+                                                sx={{ 
+                                                    backgroundColor: '#4caf50',
+                                                    color: 'white',
+                                                    '&:hover': { backgroundColor: '#388e3c' }
+                                                }}
+                                            >
+                                                <PlayArrowIcon />
+                                            </IconButton>
+                                            {auth.loggedIn && !auth.user?.isGuest && (
+                                                <IconButton 
+                                                    size="small"
+                                                    onClick={(e) => handleSongMenuOpen(e, song)}
+                                                >
+                                                    <MoreVertIcon />
+                                                </IconButton>
+                                            )}
+                                        </Box>
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        ))
+                    ) : (
+                        <Box sx={{ 
+                            textAlign: 'center', 
+                            py: 8,
+                            backgroundColor: 'white',
+                            borderRadius: 2,
+                            border: '1px solid #e0e0e0'
+                        }}>
+                            <Typography variant="h6" color="text.secondary">
+                                {store.isSongSearching ? 
+                                    'No songs match your search criteria.' : 
+                                    'No songs in catalog yet.'}
+                            </Typography>
+                        </Box>
+                    )}
+                </Box>
+
+                {/* New Song Button (only for logged-in users) */}
+                {auth.loggedIn && !auth.user?.isGuest && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<AddCircleOutlineIcon />}
+                            onClick={handleCreateNewSong}
+                            disabled={isCreatingNew}
+                            sx={{
+                                backgroundColor: '#2196F3',
+                                borderRadius: '20px',
+                                textTransform: 'none',
+                                '&:hover': { backgroundColor: '#1976D2' },
+                                '&.Mui-disabled': {
+                                    backgroundColor: '#cccccc',
+                                    color: '#666666'
+                                }
+                            }}
+                        >
+                            {isCreatingNew ? 'Creating...' : 'New Song'}
+                        </Button>
+                    </Box>
+                )}
+            </Box>
+
+            {/* Song Context Menu */}
+            <Menu
+                anchorEl={songMenuAnchor}
+                open={Boolean(songMenuAnchor)}
+                onClose={handleSongMenuClose}
+            >
+                <MenuItem onClick={handleAddToPlaylist}>
+                    Add to Playlist
+                </MenuItem>
+                {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
+                    <>
+                        <MenuItem onClick={handleEditSong}>
+                            Edit Song
+                        </MenuItem>
+                        <MenuItem onClick={handleRemoveSong}>
+                            Remove from Catalog
+                        </MenuItem>
+                    </>
+                )}
+            </Menu>
+
+            {/* Modals */}
+            <MUIEditSongModal />
+            <MUIRemoveSongModal />
+            <MUIAddSongModal />
+
+            {/* Snackbar for notifications */}
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={3000}
+                onClose={handleCloseSnackbar}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert 
+                    onClose={handleCloseSnackbar} 
+                    severity={snackbar.severity}
+                    sx={{ width: '100%' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
+        </Box>
+    );
+}

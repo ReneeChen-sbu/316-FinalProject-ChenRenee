@@ -3,92 +3,138 @@ const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:400
 async function fetchJSON(path, options = {}) {
     const url = `${API_BASE_URL}${path}`;
     console.log('DEBUG fetchJSON: requesting', url);
-  
+
     const token = localStorage.getItem('token');
-  
+
     const headers = {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
     };
-  
+
     const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: 'include',
+        ...options,
+        headers,
+        credentials: 'include',
     });
-  
+
     const text = await response.text();
     const contentType = response.headers.get('content-type') || '';
-  
+
     console.log('DEBUG fetchJSON response status:', response.status);
     console.log('DEBUG fetchJSON content-type:', contentType);
     console.log('DEBUG fetchJSON raw text (first 200 chars):', text.slice(0, 200));
-  
+
     let data = {};
     if (contentType.includes('application/json')) {
-      data = text ? JSON.parse(text) : {};
+        data = text ? JSON.parse(text) : {};
     } else {
-      // This is *exactly* your "<!DOCTYPE..." situation
-      console.error('Expected JSON but got non-JSON response body.');
-      throw new Error(
-        `Server returned non-JSON response (status ${response.status}). Check URL/path.`
-      );
+        console.error('Expected JSON but got non-JSON response body.');
+        throw new Error(
+            `Server returned non-JSON response (status ${response.status}). Check URL/path.`
+        );
     }
-  
-    if (!response.ok) {
-      throw new Error(data.errorMessage || response.statusText);
-    }
-  
-    return data;
-  }
-  
 
-  async function getPlaylistPairs() {
+    if (!response.ok) {
+        throw new Error(data.errorMessage || response.statusText);
+    }
+
+    return data;
+}
+
+// Existing playlist functions
+async function getPlaylistPairs() {
     return fetchJSON('/api/playlists/pairs', {
-      method: 'GET',
+        method: 'GET',
     });
-  }
-  
-  async function getGuestPlaylists() {
+}
+
+async function getGuestPlaylists() {
     return fetchJSON('/api/playlists/guest', {
-      method: 'GET',
+        method: 'GET',
     });
-  }
-  
-  async function deletePlaylistById(id) {
+}
+
+async function deletePlaylistById(id) {
     return fetchJSON(`/api/playlists/${id}`, {
-      method: 'DELETE',
+        method: 'DELETE',
     });
-  }
-  
-  async function getPlaylistById(id) {
+}
+
+async function getPlaylistById(id) {
     return fetchJSON(`/api/playlists/${id}`, {
-      method: 'GET',
+        method: 'GET',
     });
-  }
-  
-  async function updatePlaylistById(id, playlist) {
+}
+
+async function updatePlaylistById(id, playlist) {
     return fetchJSON(`/api/playlists/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(playlist),
+        method: 'PUT',
+        body: JSON.stringify(playlist),
     });
-  }
-  
-  async function createPlaylist(name, songs = []) {
+}
+
+async function createPlaylist(name, songs = []) {
     return fetchJSON('/api/playlists', {
-      method: 'POST',
-      body: JSON.stringify({ name, songs }),
+        method: 'POST',
+        body: JSON.stringify({ name, songs }),
     });
-  }
-  
-  async function copyPlaylist(playlistId) {
+}
+
+async function copyPlaylist(playlistId) {
     return fetchJSON(`/api/playlists/${playlistId}/copy`, {
-      method: 'POST',
+        method: 'POST',
     });
-  }
-  
-  export default {
+}
+
+
+async function getAllSongs() {
+    return fetchJSON('/api/songs', {
+        method: 'GET',
+    });
+}
+
+async function searchSongs(query) {
+    return fetchJSON(`/api/songs/search?q=${encodeURIComponent(query)}`, {
+        method: 'GET',
+    });
+}
+
+async function createSong(songData) {
+    return fetchJSON('/api/songs', {
+        method: 'POST',
+        body: JSON.stringify(songData),
+    });
+}
+
+async function updateSong(songId, songData) {
+    return fetchJSON(`/api/songs/${songId}`, {
+        method: 'PUT',
+        body: JSON.stringify(songData),
+    });
+}
+
+async function deleteSong(songId) {
+    return fetchJSON(`/api/songs/${songId}`, {
+        method: 'DELETE',
+    });
+}
+
+// Add song to playlist
+async function addSongToPlaylist(playlistId, songId) {
+    return fetchJSON(`/api/playlists/${playlistId}/songs/${songId}`, {
+        method: 'POST',
+    });
+}
+
+// Remove song from playlist
+async function removeSongFromPlaylist(playlistId, songId) {
+    return fetchJSON(`/api/playlists/${playlistId}/songs/${songId}`, {
+        method: 'DELETE',
+    });
+}
+
+export default {
     getPlaylistPairs,
     getGuestPlaylists,
     deletePlaylistById,
@@ -96,5 +142,11 @@ async function fetchJSON(path, options = {}) {
     updatePlaylistById,
     createPlaylist,
     copyPlaylist,
-  };
-  
+    getAllSongs,
+    searchSongs,
+    createSong,
+    updateSong,
+    deleteSong,
+    addSongToPlaylist,
+    removeSongFromPlaylist
+};

@@ -36,6 +36,19 @@ export const GlobalStoreActionType = {
     SET_SEARCH_QUERY: "SET_SEARCH_QUERY",
     CLEAR_SEARCH: "CLEAR_SEARCH",
     FILTER_PLAYLISTS: "FILTER_PLAYLISTS",
+    LOAD_ALL_SONGS: "LOAD_ALL_SONGS",
+    SET_SONG_SEARCH_QUERY: "SET_SONG_SEARCH_QUERY",
+    CLEAR_SONG_SEARCH: "CLEAR_SONG_SEARCH",
+    FILTER_SONGS: "FILTER_SONGS",
+    SET_SONG_TO_EDIT: "SET_SONG_TO_EDIT",
+    SET_SONG_TO_REMOVE: "SET_SONG_TO_REMOVE",
+    SET_SONG_TO_ADD_TO_PLAYLIST: "SET_SONG_TO_ADD_TO_PLAYLIST",
+    OPEN_ADD_SONG_MODAL: "OPEN_ADD_SONG_MODAL",
+    CLOSE_ADD_SONG_MODAL: "CLOSE_ADD_SONG_MODAL",
+    OPEN_REMOVE_SONG_MODAL: "OPEN_REMOVE_SONG_MODAL",
+    CLOSE_REMOVE_SONG_MODAL: "CLOSE_REMOVE_SONG_MODAL",
+    OPEN_ADD_TO_PLAYLIST_MODAL: "OPEN_ADD_TO_PLAYLIST_MODAL",
+    CLOSE_ADD_TO_PLAYLIST_MODAL: "CLOSE_ADD_TO_PLAYLIST_MODAL"
 
 }
 
@@ -65,7 +78,17 @@ function GlobalStoreContextProvider(props) {
         listMarkedForDeletion: null,
         searchQuery: "", 
         filteredPlaylists: [], 
-        isSearching: false 
+        isSearching: false,
+        allSongs: [],
+        filteredSongs: [],
+        isSongSearching: false,
+        songSearchQuery: "",
+        songToEdit: null,
+        songToRemove: null,
+        songToAddToPlaylist: null,
+        isAddSongModalOpen: false,
+        isRemoveSongModalOpen: false,
+        isAddToPlaylistModalOpen: false
     });
     const history = useHistory();
 
@@ -278,6 +301,79 @@ function GlobalStoreContextProvider(props) {
                     ...store,
                     filteredPlaylists: payload.filteredPlaylists,
                     isSearching: true
+                });
+            }
+            case GlobalStoreActionType.LOAD_ALL_SONGS: {
+                return setStore({
+                    ...store,
+                    allSongs: payload,
+                    filteredSongs: []
+                });
+            }
+            case GlobalStoreActionType.SET_SONG_SEARCH_QUERY: {
+                return setStore({
+                    ...store,
+                    songSearchQuery: payload.query,
+                    isSongSearching: !!payload.query.trim()
+                });
+            }
+            case GlobalStoreActionType.CLEAR_SONG_SEARCH: {
+                return setStore({
+                    ...store,
+                    songSearchQuery: "",
+                    filteredSongs: [],
+                    isSongSearching: false
+                });
+            }
+            case GlobalStoreActionType.FILTER_SONGS: {
+                return setStore({
+                    ...store,
+                    filteredSongs: payload.filteredSongs,
+                    isSongSearching: true
+                });
+            }
+            case GlobalStoreActionType.SET_SONG_TO_EDIT: {
+                return setStore({
+                    ...store,
+                    songToEdit: payload
+                });
+            }
+            case GlobalStoreActionType.SET_SONG_TO_REMOVE: {
+                return setStore({
+                    ...store,
+                    songToRemove: payload
+                });
+            }
+            case GlobalStoreActionType.SET_SONG_TO_ADD_TO_PLAYLIST: {
+                return setStore({
+                    ...store,
+                    songToAddToPlaylist: payload
+                });
+            }
+            case GlobalStoreActionType.OPEN_ADD_SONG_MODAL: {
+                return setStore({
+                    ...store,
+                    isAddSongModalOpen: true
+                });
+            }
+            case GlobalStoreActionType.CLOSE_ADD_SONG_MODAL: {
+                return setStore({
+                    ...store,
+                    isAddSongModalOpen: false,
+                    songToEdit: null
+                });
+            }
+            case GlobalStoreActionType.OPEN_REMOVE_SONG_MODAL: {
+                return setStore({
+                    ...store,
+                    isRemoveSongModalOpen: true
+                });
+            }
+            case GlobalStoreActionType.CLOSE_REMOVE_SONG_MODAL: {
+                return setStore({
+                    ...store,
+                    isRemoveSongModalOpen: false,
+                    songToRemove: null
                 });
             }
             
@@ -585,28 +681,164 @@ function GlobalStoreContextProvider(props) {
     store.getPlaylistSize = function() {
         return store.currentList.songs.length;
     }
-    store.addNewSong = function() {
-        let index = this.getPlaylistSize();
-        this.addCreateSongTransaction(index, "Untitled", "?", new Date().getFullYear(), "dQw4w9WgXcQ");
-    }
-    // THIS FUNCTION CREATES A NEW SONG IN THE CURRENT LIST
-    // USING THE PROVIDED DATA AND PUTS THIS SONG AT INDEX
-    store.createSong = function(index, song) {
-        let list = store.currentList;
-        
-        // Make sure songs is an array
-        if (!Array.isArray(list.songs)) {
-            console.error("songs is not an array! Current value:", list.songs);
-            list.songs = [];
+    // Load all songs
+store.loadAllSongs = async function () {
+    try {
+        const response = await storeRequestSender.getAllSongs();
+        if (response.success) {
+            storeReducer({
+                type: GlobalStoreActionType.LOAD_ALL_SONGS,
+                payload: response.songs || []
+            });
         }
-        
-        list.songs.splice(index, 0, song);
-        console.log("After adding song, songs array:", list.songs);
-        
-        // NOW MAKE IT OFFICIAL
-        store.updateCurrentList();
+    } catch (error) {
+        console.error('Error loading songs:', error);
     }
+};
 
+// Search songs
+store.searchSongs = function(query) {
+    if (!query.trim()) {
+        store.clearSongSearch();
+        return;
+    }
+    
+    const terms = query.toLowerCase().trim().split(' ');
+    const filtered = store.allSongs.filter(song => {
+        return terms.every(term => {
+            if (term.startsWith('title:')) {
+                const searchTerm = term.substring(6);
+                return song.title.toLowerCase().includes(searchTerm);
+            }
+            if (term.startsWith('artist:')) {
+                const searchTerm = term.substring(7);
+                return song.artist.toLowerCase().includes(searchTerm);
+            }
+            if (term.startsWith('year:')) {
+                const searchTerm = term.substring(5);
+                return String(song.year).includes(searchTerm);
+            }
+            
+            // General search
+            const searchTerm = term;
+            return (
+                song.title.toLowerCase().includes(searchTerm) ||
+                song.artist.toLowerCase().includes(searchTerm) ||
+                String(song.year).includes(searchTerm)
+            );
+        });
+    });
+    
+    storeReducer({
+        type: GlobalStoreActionType.SET_SONG_SEARCH_QUERY,
+        payload: { query }
+    });
+    
+    storeReducer({
+        type: GlobalStoreActionType.FILTER_SONGS,
+        payload: { filteredSongs: filtered }
+    });
+};
+
+store.clearSongSearch = function() {
+    storeReducer({
+        type: GlobalStoreActionType.CLEAR_SONG_SEARCH,
+        payload: {}
+    });
+};
+
+// Song modal methods
+store.openNewSongModal = function() {
+    storeReducer({
+        type: GlobalStoreActionType.OPEN_ADD_SONG_MODAL,
+        payload: {}
+    });
+};
+
+store.closeAddSongModal = function() {
+    storeReducer({
+        type: GlobalStoreActionType.CLOSE_ADD_SONG_MODAL,
+        payload: {}
+    });
+};
+
+store.openRemoveSongModal = function() {
+    storeReducer({
+        type: GlobalStoreActionType.OPEN_REMOVE_SONG_MODAL,
+        payload: {}
+    });
+};
+
+store.closeRemoveSongModal = function() {
+    storeReducer({
+        type: GlobalStoreActionType.CLOSE_REMOVE_SONG_MODAL,
+        payload: {}
+    });
+};
+
+store.setSongToEdit = function(song) {
+    storeReducer({
+        type: GlobalStoreActionType.SET_SONG_TO_EDIT,
+        payload: song
+    });
+};
+
+store.setSongToRemove = function(song) {
+    storeReducer({
+        type: GlobalStoreActionType.SET_SONG_TO_REMOVE,
+        payload: song
+    });
+};
+
+store.setSongToAddToPlaylist = function(song) {
+    storeReducer({
+        type: GlobalStoreActionType.SET_SONG_TO_ADD_TO_PLAYLIST,
+        payload: song
+    });
+};
+
+// Add new song to catalog
+store.addNewSong = async function(songData) {
+    try {
+        const response = await storeRequestSender.createSong(songData);
+        if (response.success) {
+            // Reload songs after adding
+            await store.loadAllSongs();
+            return response.song;
+        }
+    } catch (error) {
+        console.error('Error adding song:', error);
+        throw error;
+    }
+};
+
+// Update existing song
+store.updateSongInCatalog = async function(songId, songData) {
+    try {
+        const response = await storeRequestSender.updateSong(songId, songData);
+        if (response.success) {
+            await store.loadAllSongs();
+            return true;
+        }
+    } catch (error) {
+        console.error('Error updating song:', error);
+        throw error;
+    }
+};
+
+// Remove song from catalog
+store.removeSongFromCatalog = async function(songId) {
+    try {
+        const response = await storeRequestSender.deleteSong(songId);
+        if (response.success) {
+            await store.loadAllSongs();
+            return true;
+        }
+    } catch (error) {
+        console.error('Error removing song:', error);
+        throw error;
+    }
+};
     // THIS FUNCTION MOVES A SONG IN THE CURRENT LIST FROM
     // start TO end AND ADJUSTS ALL OTHER ITEMS ACCORDINGLY
     store.moveSong = function(start, end) {

@@ -1,5 +1,5 @@
 import './App.css';
-import { React, useContext } from 'react'  // ADD useContext import
+import { React, useContext } from 'react'  
 import { BrowserRouter, Route, Switch, useLocation } from 'react-router-dom'
 import { AuthContextProvider } from './auth';
 import { GlobalStoreContextProvider } from './store'
@@ -12,7 +12,7 @@ import RegisterScreen from './components/RegisterScreen';
 import WorkspaceScreen from './components/WorkspaceScreen';
 import SplashScreen from './components/SplashScreen';
 import EditAccountScreen from './components/EditAccountScreen';
-
+import SongsCatalogScreen from './components/SongsCatalogScreen'; 
 
 import AuthContext from './auth';
 
@@ -20,8 +20,6 @@ function AppContent() {
     const location = useLocation();
     const { auth } = useContext(AuthContext);
 
-    
-    
     return (
         <Switch>
             {/* Public routes */}
@@ -41,6 +39,18 @@ function AppContent() {
                     <>
                         <AppBanner />
                         <HomeScreen />
+                    </>
+                ) : (
+                    <SplashScreen showFullScreen={false} />  
+                )}
+            </Route>
+            
+          
+            <Route path="/songs" exact>
+                {auth.loggedIn ? (
+                    <>
+                        <AppBanner />
+                        <SongsCatalogScreen />
                     </>
                 ) : (
                     <SplashScreen showFullScreen={false} />  
