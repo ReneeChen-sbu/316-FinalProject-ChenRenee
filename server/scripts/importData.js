@@ -176,7 +176,7 @@ async function importData() {
                     const playlist = new Playlist({
                         name: uniquePlaylistName,
                         owner: ownerId,
-                        songs: songs, // <-- now full song objects, not ObjectIds
+                        songs: songs, // now full song objects, not ObjectIds
                         listenerCount: Math.floor(Math.random() * 1000),
                         published: true,
                         publishedDate: new Date(),

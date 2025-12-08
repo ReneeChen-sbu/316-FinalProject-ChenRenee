@@ -127,6 +127,7 @@ async function addSongToPlaylist(playlistId, songId) {
     });
 }
 
+
 // Remove song from playlist
 async function removeSongFromPlaylist(playlistId, songId) {
     return fetchJSON(`/api/playlists/${playlistId}/songs/${songId}`, {

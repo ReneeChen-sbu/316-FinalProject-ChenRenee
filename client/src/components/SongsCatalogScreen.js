@@ -19,8 +19,10 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ArrowRightIcon from '@mui/icons-material/ArrowRight';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import MUIEditSongModal from './MUIEditSongModal';
 import MUIRemoveSongModal from './MUIRemoveSongModal';
 import MUIAddSongModal from './MUIAddSongModal';
@@ -33,20 +35,28 @@ export default function SongsCatalogScreen() {
     const [artistFilter, setArtistFilter] = useState('');
     const [yearFilter, setYearFilter] = useState('');
     const [sortBy, setSortBy] = useState('listens-hi-lo');
-    const [isCreatingNew, setIsCreatingNew] = useState(false);
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: '',
         severity: 'success'
     });
 
-    // menu for the 3-dot button on each card
+
+
+
+    // Menu states
     const [songMenuAnchor, setSongMenuAnchor] = useState(null);
     const [selectedSongForMenu, setSelectedSongForMenu] = useState(null);
-
-    // NEW: which song is selected / currently in the YouTube player
+    const [playlistSubmenuAnchor, setPlaylistSubmenuAnchor] = useState(null);
+    
     const [selectedSongId, setSelectedSongId] = useState(null);
     const [currentVideoSong, setCurrentVideoSong] = useState(null);
+    
+
+    const playlists = (store.idNamePairs || []).filter(
+        (pl) => pl.ownerEmail === auth.user?.email
+    );
+
 
     // Load songs on component mount
     useEffect(() => {
@@ -65,7 +75,6 @@ export default function SongsCatalogScreen() {
         store.searchSongs(query);
     };
 
-    // Pressing Enter in any filter runs search
     const handleSearchKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -86,49 +95,106 @@ export default function SongsCatalogScreen() {
         });
     };
 
-    // Create new song
     const handleCreateNewSong = () => {
         store.openNewSongModal();
     };
 
-    // NEW: Play song and show in left YouTube player
     const handlePlaySong = (song) => {
         setSelectedSongId(song._id);
         setCurrentVideoSong(song);
     };
 
-    // Song menu handlers (3-dot menu)
+    // Open the main song menu
     const handleSongMenuOpen = (event, song) => {
         event.stopPropagation();
         setSelectedSongForMenu(song);
         setSongMenuAnchor(event.currentTarget);
+        setPlaylistSubmenuAnchor(null);
     };
-
+    
     const handleSongMenuClose = () => {
         setSongMenuAnchor(null);
         setSelectedSongForMenu(null);
+        setPlaylistSubmenuAnchor(null);
     };
-
-    const handleAddToPlaylist = () => {
-        if (selectedSongForMenu) {
-            store.setSongToAddToPlaylist(selectedSongForMenu);
-            store.openAddToPlaylistModal();
+    
+    // Handle hovering over "Add to Playlist" to show submenu
+    const handleAddToPlaylistMouseEnter = (event) => {
+        event.stopPropagation();
+        if (songMenuAnchor) {
+            setPlaylistSubmenuAnchor(songMenuAnchor);
         }
+    };
+    
+    const handleAddToPlaylistMouseLeave = () => {
+        setTimeout(() => {
+            if (!document.querySelector('.playlist-submenu:hover')) {
+                setPlaylistSubmenuAnchor(null);
+            }
+        }, 100);
+    };
+    
+    const handlePlaylistSubmenuMouseEnter = () => {
+        // Keep submenu open when mouse enters it
+    };
+    
+    const handlePlaylistSubmenuMouseLeave = () => {
+        setPlaylistSubmenuAnchor(null);
+    };
+    
+    // Add song to specific playlist
+    const handleAddSongToPlaylist = async (playlist) => {
+        if (!selectedSongForMenu) return;
+    
+        const ok = await store.addSongToPlaylistFromCatalog(
+            playlist._id,
+            selectedSongForMenu
+        );
+    
+        if (ok) {
+            setSnackbar({
+                open: true,
+                message: `Added "${selectedSongForMenu.title}" to "${playlist.name}"`,
+                severity: 'success'
+            });
+        } else {
+            setSnackbar({
+                open: true,
+                message: `Failed to add "${selectedSongForMenu.title}" to "${playlist.name}"`,
+                severity: 'error'
+            });
+        }
+    
         handleSongMenuClose();
     };
+    
+    
+    
 
+    // EDIT SONG
     const handleEditSong = () => {
         if (selectedSongForMenu) {
-            store.setSongToEdit(selectedSongForMenu);
-            store.openEditSongModal();
+            console.log('Opening edit modal for:', selectedSongForMenu);
+            
+            const displaySongs = store.isSongSearching
+                ? (store.filteredSongs || [])
+                : (store.allSongs || []);
+            
+            const songIndex = displaySongs.findIndex(song => song._id === selectedSongForMenu._id);
+            
+            console.log("Song index:", songIndex, "Song:", selectedSongForMenu);
+            
+            store.showEditSongModal(songIndex, selectedSongForMenu);
         }
         handleSongMenuClose();
     };
 
+    // REMOVE SONG
     const handleRemoveSong = () => {
         if (selectedSongForMenu) {
+            console.log('Opening remove modal for:', selectedSongForMenu);
+            // First set the song to remove, then open the modal
             store.setSongToRemove(selectedSongForMenu);
-            store.openRemoveSongModal();
         }
         handleSongMenuClose();
     };
@@ -140,13 +206,31 @@ export default function SongsCatalogScreen() {
         const sorted = [...songs];
         switch (sortBy) {
             case 'listens-hi-lo':
-                return sorted.sort((a, b) => (b.listens || 0) - (a.listens || 0));
+                // Try different property names - your data might have listens, listenCount, or plays
+                return sorted.sort((a, b) => {
+                    const aListens = a.listens || a.listenCount || a.plays || 0;
+                    const bListens = b.listens || b.listenCount || b.plays || 0;
+                    return bListens - aListens;
+                });
             case 'listens-lo-hi':
-                return sorted.sort((a, b) => (a.listens || 0) - (b.listens || 0));
+                return sorted.sort((a, b) => {
+                    const aListens = a.listens || a.listenCount || a.plays || 0;
+                    const bListens = b.listens || b.listenCount || b.plays || 0;
+                    return aListens - bListens;
+                });
             case 'playlists-hi-lo':
-                return sorted.sort((a, b) => (b.playlistCount || 0) - (a.playlistCount || 0));
+                // Try different property names for playlist count
+                return sorted.sort((a, b) => {
+                    const aPlaylists = a.playlistCount || a.playlists || a.playlistOccurrences || 0;
+                    const bPlaylists = b.playlistCount || b.playlists || b.playlistOccurrences || 0;
+                    return bPlaylists - aPlaylists;
+                });
             case 'playlists-lo-hi':
-                return sorted.sort((a, b) => (a.playlistCount || 0) - (b.playlistCount || 0));
+                return sorted.sort((a, b) => {
+                    const aPlaylists = a.playlistCount || a.playlists || a.playlistOccurrences || 0;
+                    const bPlaylists = b.playlistCount || b.playlists || b.playlistOccurrences || 0;
+                    return aPlaylists - bPlaylists;
+                });
             case 'title-a-z':
                 return sorted.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
             case 'title-z-a':
@@ -179,7 +263,6 @@ export default function SongsCatalogScreen() {
     
     const sortedSongs = sortSongs(displaySongs);
 
-    // YouTube video src for selected song
     const videoSrc = currentVideoSong?.youTubeId
         ? `https://www.youtube.com/embed/${currentVideoSong.youTubeId}`
         : null;
@@ -191,17 +274,9 @@ export default function SongsCatalogScreen() {
             backgroundColor: '#f8e0f0',
             p: 3
         }}>
-            {/* LEFT SIDEBAR – filters + YouTube player */}
+            {/* LEFT SIDEBAR */}
             <Box sx={{ width: '33%', pr: 3 }}>
-                <Typography 
-                    variant="h4" 
-                    sx={{ 
-                        color: '#e020a0',        // magenta title
-                        fontWeight: 800, 
-                        mb: 3,
-                        fontFamily: '"Roboto", system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
-                    }}
-                >
+                <Typography variant="h4" sx={{ color: '#e020a0', fontWeight: 800, mb: 3 }}>
                     Songs Catalog
                 </Typography>
 
@@ -259,7 +334,7 @@ export default function SongsCatalogScreen() {
                         onClick={handleSearch}
                         sx={{
                             flex: 1,
-                            backgroundColor: '#5e35b1',   // purple like mock
+                            backgroundColor: '#5e35b1',
                             borderRadius: '20px',
                             textTransform: 'none',
                             '&:hover': { backgroundColor: '#4527a0' }
@@ -289,11 +364,7 @@ export default function SongsCatalogScreen() {
                             Found {store.filteredSongs ? store.filteredSongs.length : 0} song
                             {store.filteredSongs && store.filteredSongs.length !== 1 ? 's' : ''}
                             {store.songSearchQuery && (
-                                <Typography
-                                    variant="caption"
-                                    component="div"
-                                    sx={{ mt: 0.5, color: '#666' }}
-                                >
+                                <Typography variant="caption" component="div" sx={{ mt: 0.5, color: '#666' }}>
                                     Search: {store.songSearchQuery}
                                 </Typography>
                             )}
@@ -301,18 +372,9 @@ export default function SongsCatalogScreen() {
                     </Box>
                 )}
 
-                {/* NEW: YouTube player for selected song */}
+                {/* YouTube player */}
                 {videoSrc && (
-                    <Box
-                        sx={{
-                            mt: 4,
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            boxShadow: 3,
-                            backgroundColor: '#000',
-                            aspectRatio: '16 / 9'
-                        }}
-                    >
+                    <Box sx={{ mt: 4, borderRadius: 2, overflow: 'hidden', boxShadow: 3, backgroundColor: '#000', aspectRatio: '16 / 9' }}>
                         <iframe
                             key={currentVideoSong._id}
                             width="100%"
@@ -361,9 +423,18 @@ export default function SongsCatalogScreen() {
                 {/* Song Cards */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
                     {sortedSongs && sortedSongs.length > 0 ? (
-                        sortedSongs.map((song) => {
+                        sortedSongs.map((song, index) => {
                             const isSelected = selectedSongId === song._id;
                             const isOwned = isSongOwnedByUser(song);
+
+                            // Debug: log the song object to see what properties it has
+                            console.log('Song object:', song);
+
+                            // Get the listen count (try different property names)
+                            const listenCount = song.listens || song.listenCount || song.plays || 0;
+                            
+                            // Get the playlist count (try different property names)
+                            const playlistCount = song.playlistCount || song.playlists || song.playlistOccurrences || 0;
 
                             return (
                                 <Card 
@@ -373,9 +444,7 @@ export default function SongsCatalogScreen() {
                                         cursor: 'pointer',
                                         borderRadius: 2,
                                         backgroundColor: isSelected ? '#ffe9b3' : '#fff8d5',
-                                        border: isSelected 
-                                            ? '2px solid #f44336'    // red border for active card
-                                            : '1px solid #f0c36d',
+                                        border: isSelected ? '2px solid #f44336' : '1px solid #f0c36d',
                                         position: 'relative',
                                         boxShadow: isSelected ? 4 : 1,
                                         '&:hover': {
@@ -388,19 +457,12 @@ export default function SongsCatalogScreen() {
                                     <CardContent sx={{ '&:last-child': { pb: 2 } }}>
                                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                             <Box sx={{ flex: 1, pr: 2 }}>
-                                                <Typography 
-                                                    sx={{ 
-                                                        fontWeight: 600, 
-                                                        mb: 0.5,
-                                                        fontSize: 16,
-                                                        color: '#424242'
-                                                    }}
-                                                >
+                                                <Typography sx={{ fontWeight: 600, mb: 0.5, fontSize: 16, color: '#424242' }}>
                                                     {song.title} by {song.artist} ({song.year})
                                                 </Typography>
                                                 <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
                                                     <Chip 
-                                                        label={`Listens: ${song.listens?.toLocaleString() || 0}`}
+                                                        label={`Listens: ${listenCount.toLocaleString()}`}
                                                         size="small"
                                                         sx={{
                                                             backgroundColor: '#ffe0b2',
@@ -409,7 +471,7 @@ export default function SongsCatalogScreen() {
                                                         }}
                                                     />
                                                     <Chip 
-                                                        label={`Playlists: ${song.playlistCount || 0}`}
+                                                        label={`Playlists: ${playlistCount}`}
                                                         size="small"
                                                         sx={{
                                                             backgroundColor: '#dcedc8',
@@ -436,6 +498,11 @@ export default function SongsCatalogScreen() {
                                                     <IconButton 
                                                         size="small"
                                                         onClick={(e) => handleSongMenuOpen(e, song)}
+                                                        sx={{
+                                                            '&:hover': {
+                                                                backgroundColor: 'rgba(103, 58, 183, 0.08)'
+                                                            }
+                                                        }}
                                                     >
                                                         <MoreVertIcon />
                                                     </IconButton>
@@ -447,65 +514,146 @@ export default function SongsCatalogScreen() {
                             );
                         })
                     ) : (
-                        <Box sx={{ 
-                            textAlign: 'center', 
-                            py: 8,
-                            backgroundColor: 'white',
-                            borderRadius: 2,
-                            border: '1px solid #e0e0e0'
-                        }}>
+                        <Box sx={{ textAlign: 'center', py: 8, backgroundColor: 'white', borderRadius: 2, border: '1px solid #e0e0e0' }}>
                             <Typography variant="h6" color="text.secondary">
-                                {store.isSongSearching ? 
-                                    'No songs match your search criteria.' : 
-                                    'No songs in catalog yet.'}
+                                {store.isSongSearching ? 'No songs match your search criteria.' : 'No songs in catalog yet.'}
                             </Typography>
                         </Box>
                     )}
                 </Box>
 
-                {/* New Song Button (only for logged-in users) */}
+                {/* New Song Button */}
                 {auth.loggedIn && !auth.user?.isGuest && (
                     <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                         <Button
                             variant="contained"
                             startIcon={<AddCircleOutlineIcon />}
                             onClick={handleCreateNewSong}
-                            disabled={isCreatingNew}
                             sx={{
                                 backgroundColor: '#5e35b1',
                                 borderRadius: '20px',
                                 textTransform: 'none',
-                                '&:hover': { backgroundColor: '#4527a0' },
-                                '&.Mui-disabled': {
-                                    backgroundColor: '#cccccc',
-                                    color: '#666666'
-                                }
+                                '&:hover': { backgroundColor: '#4527a0' }
                             }}
                         >
-                            {isCreatingNew ? 'Creating...' : 'New Song'}
+                            New Song
                         </Button>
                     </Box>
                 )}
             </Box>
 
-            {/* Song Context Menu (3-dot dropdown) */}
+            {/* MAIN SONG MENU */}
             <Menu
                 anchorEl={songMenuAnchor}
                 open={Boolean(songMenuAnchor)}
                 onClose={handleSongMenuClose}
+                PaperProps={{
+                    sx: {
+                        borderRadius: 2,
+                        overflow: 'visible',
+                        mt: 1,
+                        boxShadow: 4,
+                        minWidth: 200
+                    }
+                }}
             >
-                <MenuItem onClick={handleAddToPlaylist}>
+                {/* Add to Playlist with hover functionality */}
+                <MenuItem
+                    onMouseEnter={handleAddToPlaylistMouseEnter}
+                    onMouseLeave={handleAddToPlaylistMouseLeave}
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: playlistSubmenuAnchor ? '#f3e5f5' : 'white',
+                        '&:hover': {
+                            backgroundColor: '#f3e5f5'
+                        }
+                    }}
+                >
                     Add to Playlist
+                    <ArrowRightIcon fontSize="small" />
                 </MenuItem>
+
+                {/* Edit Song – ONLY IF USER OWNS THE SONG */}
                 {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
-                    <>
-                        <MenuItem onClick={handleEditSong}>
-                            Edit Song
+                    <MenuItem
+                    onClick={handleEditSong}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        '&:hover': { backgroundColor: '#e1bee7' }
+                    }}
+                >
+                    <EditIcon fontSize="small" />
+                    Edit Song
+                </MenuItem>
+            )}
+            
+                {/* Remove from Catalog – ONLY IF USER OWNS THE SONG */}
+                 {selectedSongForMenu && isSongOwnedByUser(selectedSongForMenu) && (
+                     <MenuItem
+                     onClick={handleRemoveSong}
+                     sx={{
+                         display: 'flex',
+                         alignItems: 'center',
+                         gap: 1,
+                         '&:hover': { backgroundColor: '#ffcdd2' }
+                     }}
+                 >
+                     <DeleteIcon fontSize="small" />
+                     Remove from Catalog
+                 </MenuItem>
+             )}
+             
+            </Menu>
+
+            {/* PLAYLIST SUBMENU */}
+            <Menu
+                anchorEl={playlistSubmenuAnchor}
+                open={Boolean(playlistSubmenuAnchor)}
+                onClose={() => setPlaylistSubmenuAnchor(null)}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+                PaperProps={{
+                    className: 'playlist-submenu',
+                    sx: {
+                        ml: 1,
+                        maxHeight: 300,
+                        width: 220,
+                        backgroundColor: '#f8bbd0',
+                        borderRadius: 2,
+                        overflow: 'auto',
+                        '&::-webkit-scrollbar': { width: '6px' },
+                        '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '3px' },
+                        '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '3px' }
+                    },
+                    onMouseEnter: handlePlaylistSubmenuMouseEnter,
+                    onMouseLeave: handlePlaylistSubmenuMouseLeave
+                }}
+            >
+                {playlists.length === 0 ? (
+                    <MenuItem disabled sx={{ opacity: 0.7 }}>
+                        No Playlists Yet
+                    </MenuItem>
+                ) : (
+                    playlists.map((playlist) => (
+                        <MenuItem
+                            key={playlist._id}
+                            onClick={() => handleAddSongToPlaylist(playlist)}
+                            sx={{
+                                backgroundColor: '#f8bbd0',
+                                borderBottom: '1px solid rgba(0,0,0,0.15)',
+                                '&:last-of-type': { borderBottom: 'none' },
+                                '&:hover': {
+                                    backgroundColor: '#f48fb1'
+                                }
+                            }}
+                        >
+                            {playlist.name}
                         </MenuItem>
-                        <MenuItem onClick={handleRemoveSong}>
-                            Remove from Catalog
-                        </MenuItem>
-                    </>
+                    ))
                 )}
             </Menu>
 
@@ -514,18 +662,14 @@ export default function SongsCatalogScreen() {
             <MUIRemoveSongModal />
             <MUIAddSongModal />
 
-            {/* Snackbar for notifications */}
+            {/* Snackbar */}
             <Snackbar
                 open={snackbar.open}
                 autoHideDuration={3000}
                 onClose={handleCloseSnackbar}
                 anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
             >
-                <Alert 
-                    onClose={handleCloseSnackbar} 
-                    severity={snackbar.severity}
-                    sx={{ width: '100%' }}
-                >
+                <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>
