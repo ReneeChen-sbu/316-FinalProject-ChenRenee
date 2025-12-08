@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect } from 'react';
+import { useHistory} from 'react-router-dom';
 import {
   Box,
   Button,
@@ -23,6 +24,7 @@ import MUIEditSongModal from './MUIEditSongModal';
 export default function EditPlaylistModal({ open, onClose }) {
   const { store } = useContext(GlobalStoreContext);
   const playlist = store.currentList;
+  const history = useHistory();
 
   // Only show when parent says `open` and there is a currentList
   const isOpen = open && !!playlist;
@@ -229,7 +231,7 @@ const handleEditSong = (index) => {
           {/* Top-right buttons */}
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button
-              onClick={handleAddSong}
+              onClick={() => history.push('/songs')}
               sx={{
                 borderRadius: '999px',
                 px: 3,
