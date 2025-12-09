@@ -25,7 +25,7 @@ export default function MUIRemoveSongModal() {
 
     const handleRemove = async () => {
         if (songToRemove) {
-            await store.removeSong(songToRemove._id);
+            await store.removeSongFromCatalog(songToRemove._id);
             handleClose();
         }
     };

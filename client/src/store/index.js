@@ -972,6 +972,11 @@ function GlobalStoreContextProvider(props) {
             const response = await storeRequestSender.deleteSong(songId);
             if (response.success) {
                 await store.loadAllSongs();
+                await store.loadIdNamePairs();
+
+                if (store.currentList && store.currentList._id) {
+                    await store.setCurrentList(store.currentList._id);
+                }
                 return true;
             }
         } catch (error) {
