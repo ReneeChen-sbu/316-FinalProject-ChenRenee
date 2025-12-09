@@ -130,7 +130,7 @@ export default function SongsCatalogScreen() {
         event.stopPropagation();
         setSelectedSongForMenu(song);
         setSongMenuAnchor(event.currentTarget);
-        setShowPlaylistPanel(true);
+        setShowPlaylistPanel(false);
     };
     
     const handleSongMenuClose = () => {
@@ -143,6 +143,10 @@ export default function SongsCatalogScreen() {
     const handleShowPlaylistPanel = (event) => {
         event.stopPropagation();
         setShowPlaylistPanel(true);
+    };
+
+    const handleHidePlaylistPanel = () => {
+        setShowPlaylistPanel(false);
     };
     
     // Add song to specific playlist
@@ -563,24 +567,25 @@ export default function SongsCatalogScreen() {
                     }
                 }}
             >
-               <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
-                  <Box
-                     sx={{
+                <Box sx={{ display: 'flex', alignItems: 'stretch' }}>
+                    <Box
+                        sx={{
                             minWidth: 200,
-                           bgcolor: '#d1c4e9',
-                           borderTopLeftRadius: 8,
-                           borderBottomLeftRadius: 8,
-                           overflow: 'hidden'
-                       }}
-                  >
+                            bgcolor: '#d1c4e9',
+                            borderTopLeftRadius: 8,
+                            borderBottomLeftRadius: 8,
+                            overflow: 'hidden'
+                        }}
+                    >
                         <MenuItem
-                            onClick={handleShowPlaylistPanel}
+                            onMouseEnter={handleShowPlaylistPanel}
+                            onMouseLeave={handleHidePlaylistPanel}
                             sx={{
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 bgcolor: showPlaylistPanel ? '#c5b0f5' : '#d1c4e9',
-                               color: '#2f1c46',
+                                color: '#2f1c46',
                                 fontWeight: 600,
                                 '&:hover': {
                                     backgroundColor: '#c5b0f5'
@@ -588,77 +593,44 @@ export default function SongsCatalogScreen() {
                             }}
                         >
                             Add to Playlist
-
-                           <ArrowRightIcon fontSize="small" />
+                            <ArrowRightIcon fontSize="small" />
                         </MenuItem>
 
-                           <MenuItem
+                        <MenuItem
+                            onClick={handleEditSong}
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                color: '#2f1c46',
+                                fontWeight: 600,
+                                '&:hover': { backgroundColor: '#e1bee7' }
+                            }}
+                        >
+                            <EditIcon fontSize="small" />
+                            Edit Song
+                        </MenuItem>
 
-                                onClick={handleEditSong}
-
-                                sx={{
-
-                                   display: 'flex',
-
-                                   alignItems: 'center',
-
-                                   gap: 1,
-
-                                    color: '#2f1c46',
-
-                                    fontWeight: 600,
-
-                                   '&:hover': { backgroundColor: '#e1bee7' }
-
-                                }}
-
-                            >
-
-                                <EditIcon fontSize="small" />
-
-                                Edit Song
-
-                            </MenuItem>
-
-
-                            <MenuItem
-
-                                onClick={handleRemoveSong}
-
-                               sx={{
-
-                                    display: 'flex',
-
-                                   alignItems: 'center',
-
-                                    gap: 1,
-
-                                    color: '#2f1c46',
-
-                                    fontWeight: 600,
-
-                                   '&:hover': { backgroundColor: '#ffcdd2' }
-
-                               }}
-
-                            >
-
-                                <DeleteIcon fontSize="small" />
-
-                                Remove from Catalog
-
-                            </MenuItem>
-
+                        <MenuItem
+                            onClick={handleRemoveSong}
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                color: '#2f1c46',
+                                fontWeight: 600,
+                                '&:hover': { backgroundColor: '#ffcdd2' }
+                            }}
+                        >
+                            <DeleteIcon fontSize="small" />
+                            Remove from Catalog
+                        </MenuItem>
                     </Box>
 
-                   {showPlaylistPanel && (
-
+                    {showPlaylistPanel && (
                         <Box
-
                             sx={{
-
-                               width: 220,
-
+                                width: 220,
                                 bgcolor: '#e8b4b4',
                                 borderTopRightRadius: 8,
                                 borderBottomRightRadius: 8,
@@ -666,60 +638,39 @@ export default function SongsCatalogScreen() {
                                 display: 'flex',
                                 flexDirection: 'column'
                             }}
-
+                            onMouseEnter={handleShowPlaylistPanel}
+                            onMouseLeave={handleHidePlaylistPanel}
                         >
-
                             <List dense disablePadding sx={{ py: 1 }}>
-
                                 {playlists.length === 0 ? (
                                     <ListItem sx={{ py: 1.5 }}>
                                         <ListItemText
-                                         primary="No Playlists Yet"
-                                          sx={{ color: '#4a2f2f', textAlign: 'center' }}
-                                       />
-
-                                   </ListItem>
-                               ) : (
-
-                                   playlists.map((playlist) => (
-
-                                       <ListItem
-
+                                            primary="No Playlists Yet"
+                                            sx={{ color: '#4a2f2f', textAlign: 'center' }}
+                                        />
+                                    </ListItem>
+                                ) : (
+                                    playlists.map((playlist) => (
+                                        <ListItem
                                             key={playlist._id}
-
-                                           button
-
+                                            button
                                             onClick={() => handleAddSongToPlaylist(playlist)}
-
-                                          sx={{
-
-                                               borderBottom: '1px solid rgba(0,0,0,0.08)',
-
-                                               '&:last-of-type': { borderBottom: 'none' },
-
+                                            sx={{
+                                                borderBottom: '1px solid rgba(0,0,0,0.08)',
+                                                '&:last-of-type': { borderBottom: 'none' },
                                                 '&:hover': { bgcolor: '#f0a4a4' }
-
-                                           }}
-
+                                            }}
                                         >
                                             <ListItemText
-                                               primary={playlist.name}
-                                               sx={{ color: '#4a2f2f', fontWeight: 700 }}
-
+                                                primary={playlist.name}
+                                                sx={{ color: '#4a2f2f', fontWeight: 700 }}
                                             />
-
-                                       </ListItem>
-
+                                        </ListItem>
                                     ))
-
-                               )}
-
+                                )}
                             </List>
-
-                       </Box>
-
+                        </Box>
                     )}
-
                 </Box>
             </Menu>
 
