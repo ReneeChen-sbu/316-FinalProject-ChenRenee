@@ -4,6 +4,7 @@ const playlistSchema = new mongoose.Schema({
     name: { type: String, required: true },
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     songs: [{
+        songId: { type: mongoose.Schema.Types.ObjectId, ref: 'Song' },
         title: { type: String, required: true },
         artist: { type: String, required: true },
         year: { type: Number, required: true },

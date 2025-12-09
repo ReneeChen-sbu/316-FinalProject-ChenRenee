@@ -474,9 +474,10 @@ const addSongToPlaylist = async (req, res) => {
      }
     const currentSongs = Array.isArray(playlist.songs) ? playlist.songs : [];
     const alreadyIncluded = currentSongs.some(existing =>
-       existing.title === song.title &&
+       (existing.songId && existing.songId.toString() === songId) ||
+       (existing.title === song.title &&
        existing.artist === song.artist &&
-       existing.year === song.year
+       existing.year === song.year)
     );
     if (alreadyIncluded) {
       return res.status(400).json({
@@ -486,15 +487,16 @@ const addSongToPlaylist = async (req, res) => {
           errorMessage: 'Song is already in this playlist'
         });
      }
-     playlist.songs = [
-        ...currentSongs,
-      {
+    playlist.songs = [
+       ...currentSongs,
+     {
+          songId: song._id,
           title: song.title,
           artist: song.artist,
           year: song.year,
          youTubeId: song.youTubeId
        }
-     ];
+    ];
     playlist.updatedAt = new Date();
     await playlist.save();
       await Song.findByIdAndUpdate(songId, { $inc: { playlistCount: 1 } });
@@ -542,13 +544,16 @@ const addSongToPlaylist = async (req, res) => {
     if (playlist.owner.toString() !== userId) {
       return res.status(403).json({ success: false, errorMessage: 'Access denied' });
    }
-    const currentSongs = Array.isArray(playlist.songs) ? playlist.songs : [];
-     const filteredSongs = currentSongs.filter(existing => !(
-      existing.title === song.title &&
-     existing.artist === song.artist &&
-     existing.year === song.year &&
-      existing.youTubeId === song.youTubeId
-     ));
+  const currentSongs = Array.isArray(playlist.songs) ? playlist.songs : [];
+   const filteredSongs = currentSongs.filter(existing => {
+    const matchesSongId = existing.songId && existing.songId.toString() === songId;
+    const matchesFields = existing.title === song.title &&
+   existing.artist === song.artist &&
+   existing.year === song.year &&
+    existing.youTubeId === song.youTubeId;
+
+    return !(matchesSongId || matchesFields);
+   });
     if (filteredSongs.length === currentSongs.length) {
       return res.status(404).json({
         success: false,

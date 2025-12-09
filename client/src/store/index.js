@@ -872,6 +872,12 @@ function GlobalStoreContextProvider(props) {
             const response = await storeRequestSender.updateSong(songId, songData);
             if (response.success) {
                 await store.loadAllSongs();
+
+                // Refresh playlists so any catalog edits propagate to playlist entries
+                await store.loadIdNamePairs();
+                if (store.currentList && store.currentList._id) {
+                    await store.setCurrentList(store.currentList._id);
+                }
                 return true;
             }
         } catch (error) {
@@ -1046,6 +1052,7 @@ function GlobalStoreContextProvider(props) {
                 
                 // Create song data for the playlist (basic structure)
                 const songToAdd = {
+                    songId: song._id,
                     title: song.title,
                     artist: song.artist,
                     year: song.year,

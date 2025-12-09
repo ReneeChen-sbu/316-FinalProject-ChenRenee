@@ -159,6 +159,9 @@ router.put('/:id', auth.requireAuth, async (req, res) => {
             });
         }
         
+        // Capture the original values so we can update playlists that only stored copies
+        const originalSong = song.toObject();
+
         // Check if new values would create a duplicate
         if (title || artist || year) {
             const duplicateCheck = {
@@ -166,14 +169,14 @@ router.put('/:id', auth.requireAuth, async (req, res) => {
                 artist: artist || song.artist,
                 year: year ? parseInt(year) : song.year
             };
-            
+
             const existing = await Song.findOne({
                 title: duplicateCheck.title,
                 artist: duplicateCheck.artist,
                 year: duplicateCheck.year,
                 _id: { $ne: songId }
             });
-            
+
             if (existing) {
                 return res.status(400).json({
                     success: false,
@@ -193,6 +196,55 @@ router.put('/:id', auth.requireAuth, async (req, res) => {
         const updatedSong = await song.save();
         const populatedSong = await Song.findById(updatedSong._id)
             .populate('addedBy', 'userName email');
+
+        // Update any playlist entries that reference this song by songId
+        await Playlist.updateMany(
+            { 'songs.songId': songId },
+            {
+                $set: {
+                    'songs.$[elem].title': song.title,
+                    'songs.$[elem].artist': song.artist,
+                    'songs.$[elem].year': song.year,
+                    'songs.$[elem].youTubeId': song.youTubeId
+                }
+            },
+            { arrayFilters: [{ 'elem.songId': songId }] }
+        );
+
+        // Also update legacy playlists that copied song data without songId
+        await Playlist.updateMany(
+            {
+                songs: {
+                    $elemMatch: {
+                        songId: { $exists: false },
+                        title: originalSong.title,
+                        artist: originalSong.artist,
+                        year: originalSong.year,
+                        youTubeId: originalSong.youTubeId
+                    }
+                }
+            },
+            {
+                $set: {
+                    'songs.$[elem].songId': songId,
+                    'songs.$[elem].title': song.title,
+                    'songs.$[elem].artist': song.artist,
+                    'songs.$[elem].year': song.year,
+                    'songs.$[elem].youTubeId': song.youTubeId
+                }
+            },
+            {
+                arrayFilters: [
+                    {
+                        'elem.songId': { $exists: false },
+                        'elem.title': originalSong.title,
+                        'elem.artist': originalSong.artist,
+                        'elem.year': originalSong.year,
+                        'elem.youTubeId': originalSong.youTubeId
+                    }
+                ]
+            }
+        );
         
         return res.status(200).json({
             success: true,
