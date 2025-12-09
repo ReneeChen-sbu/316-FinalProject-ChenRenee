@@ -968,8 +968,16 @@ function GlobalStoreContextProvider(props) {
     };
     
     // Remove song from catalog
-    store.removeSongFromCatalog = async function(songId) {
+    store.removeSongFromCatalog = async function(songOrId) {
         try {
+            const songId = typeof songOrId === 'string'
+                ? songOrId
+                : songOrId?._id || songOrId?.songId;
+
+            if (!songId) {
+                throw new Error('No song id provided for deletion');
+            }
+
             const response = await storeRequestSender.deleteSong(songId);
             if (response.success) {
                 await store.loadAllSongs();
