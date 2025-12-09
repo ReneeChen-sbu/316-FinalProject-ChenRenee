@@ -96,14 +96,13 @@ export default function EditPlaylistModal({ open, onClose }) {
 
 const handleEditSong = (index) => {
     const song = songs[index];
-    if (!song) {
+    if (!song || !store.currentList) {
         return;
     }
-    
-    // This should trigger the global edit song modal
-    store.showEditSongModal(index, song);
-    
 
+    // Ensure the playlist context is current before opening the editor
+    // and mark this edit as coming from the playlist workflow.
+    store.showEditSongModal(index, { ...song }, 'playlist');
 };
 
   const handleDuplicateSong = (index) => {

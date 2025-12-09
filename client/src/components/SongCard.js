@@ -58,7 +58,12 @@ export default function SongsCatalogScreen() {
     const [currentVideoSong, setCurrentVideoSong] = useState(null);
     
     // Get playlists ordered by most recently edited
-    const playlists = store.idNamePairs || [];
+    const playlists = (store.idNamePairs || [])
+        .filter((pl) => pl.ownerEmail === auth.user?.email)
+          .sort((a, b) => {
+            const getDate = (item) => new Date(item.lastAccessed || item.updatedAt || 0).getTime();
+              return getDate(b) - getDate(a);
+          });
 
     // Load songs on component mount
     useEffect(() => {
