@@ -108,7 +108,15 @@ export default function SongsCatalogScreen() {
         setCurrentVideoSong(song);
 
         if (song?._id) {
-            await store.incrementSongListenCount(song._id);
+            const result = await store.incrementSongListenCount(song._id);
+            if (result?.listenCount !== undefined) {
+                const updatedSong = {
+                    ...song,
+                    listenCount: result.listenCount,
+                    listens: result.listenCount,
+                };
+                setCurrentVideoSong(updatedSong);
+            }
         }
     };
 

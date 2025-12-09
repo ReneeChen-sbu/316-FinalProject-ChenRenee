@@ -625,7 +625,7 @@ function GlobalStoreContextProvider(props) {
       };
 
       store.incrementSongListenCount = async function (songId) {
-            if (!songId) return;
+            if (!songId) return null;
               try {
                     const response = await storeRequestSender.incrementSongListenCount(songId);
                   if (response.success) {
@@ -635,10 +635,13 @@ function GlobalStoreContextProvider(props) {
                            type: GlobalStoreActionType.UPDATE_SONG_LISTEN_COUNT,
                             payload: { songId, listenCount }
                        });
+                       return { listenCount, song: response.song };
                     }
                } catch (error) {
                   console.error('Failed to increment song listen count:', error);
                }
+
+               return null;
            };
       
       
