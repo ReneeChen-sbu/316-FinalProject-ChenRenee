@@ -57,6 +57,18 @@ export default function SongsCatalogScreen() {
     
 
     const playlists = (store.idNamePairs || [])
+        .filter((playlist) => {
+            if (!auth.loggedIn || auth.user?.isGuest) return false;
+
+            const userId = auth.user?._id || auth.user?.id;
+            const userEmail = (auth.user?.email || auth.user?.emailAddress || '').toLowerCase();
+
+            const ownerId = playlist.ownerId || playlist.owner?._id || playlist.owner?._id?.toString?.();
+            const ownerEmail = (playlist.ownerEmail || playlist.owner?.email || '').toLowerCase();
+
+            return ownerId === userId || ownerEmail === userEmail;
+        })
+
         .sort((a, b) => {
             const getDate = (item) => new Date(item.lastAccessed || item.updatedAt || 0).getTime();
             return getDate(b) - getDate(a);
@@ -635,7 +647,9 @@ export default function SongsCatalogScreen() {
                                 borderBottomRightRadius: 8,
                                 borderLeft: '4px solid #d1c4e9',
                                 display: 'flex',
-                                flexDirection: 'column'
+                                flexDirection: 'column',
+                                maxHeight: 260,
+                                overflowY: 'auto'
                             }}
                             onMouseEnter={handleShowPlaylistPanel}
                             onMouseLeave={handleHidePlaylistPanel}
