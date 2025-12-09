@@ -161,10 +161,8 @@ export default function HomeScreen() {
         setSnackbar({ ...snackbar, open: false });
     };
 
-    const displayPlaylists = store.isSearching
-        ? (store.filteredPlaylists || [])
-        : (store.idNamePairs || []);
-    
+    const displayPlaylists = store.getDisplayPlaylists();
+
     const sortedPlaylists = sortPlaylists(displayPlaylists);
 
     return (

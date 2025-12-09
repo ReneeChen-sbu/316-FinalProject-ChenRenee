@@ -58,7 +58,7 @@ export default function MUIEditSongModal() {
         return null;
     }
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         const newSongData = {
             title: title.trim() || 'Untitled',
             artist: artist.trim() || 'Unknown',
@@ -66,8 +66,7 @@ export default function MUIEditSongModal() {
             youTubeId: youTubeId.trim() || 'dQw4w9WgXcQ'
         };
 
-        store.addUpdateSongTransaction(currentIndex, newSongData);
-        store.hideModals();
+        await store.confirmEditSong(newSongData);
     };
 
     const handleCancel = () => {

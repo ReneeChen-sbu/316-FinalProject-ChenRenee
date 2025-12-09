@@ -171,7 +171,7 @@ export default function SongsCatalogScreen() {
             
             const songIndex = displaySongs.findIndex(song => song._id === selectedSongForMenu._id);
             
-            store.showEditSongModal(songIndex, selectedSongForMenu);
+            store.showEditSongModal(songIndex, selectedSongForMenu, 'catalog');
         }
         handleSongMenuClose();
     };
