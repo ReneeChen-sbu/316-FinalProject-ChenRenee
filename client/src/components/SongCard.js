@@ -103,9 +103,13 @@ export default function SongsCatalogScreen() {
     };
 
     // Play song and show in left YouTube player
-    const handlePlaySong = (song) => {
+    const handlePlaySong = async (song) => {
         setSelectedSongId(song._id);
         setCurrentVideoSong(song);
+
+        if (song?._id) {
+            await store.incrementSongListenCount(song._id);
+        }
     };
 
     // Open the main song menu

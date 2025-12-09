@@ -108,9 +108,13 @@ export default function SongsCatalogScreen() {
         store.openNewSongModal();
     };
 
-    const handlePlaySong = (song) => {
+    const handlePlaySong = async (song) => {
         setSelectedSongId(song._id);
         setCurrentVideoSong(song);
+
+        if (song?._id) {
+            await store.incrementSongListenCount(song._id);
+        }
     };
 
     // Open the main song menu

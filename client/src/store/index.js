@@ -49,7 +49,8 @@ export const GlobalStoreActionType = {
     CLOSE_REMOVE_SONG_MODAL: "CLOSE_REMOVE_SONG_MODAL",
     OPEN_ADD_TO_PLAYLIST_MODAL: "OPEN_ADD_TO_PLAYLIST_MODAL",
     CLOSE_ADD_TO_PLAYLIST_MODAL: "CLOSE_ADD_TO_PLAYLIST_MODAL",
-    UPDATE_PLAYLIST_LISTENER_COUNT: "UPDATE_PLAYLIST_LISTENER_COUNT"
+    UPDATE_PLAYLIST_LISTENER_COUNT: "UPDATE_PLAYLIST_LISTENER_COUNT",
+    UPDATE_SONG_LISTEN_COUNT: "UPDATE_SONG_LISTEN_COUNT"
 
 }
 
@@ -212,6 +213,28 @@ function GlobalStoreContextProvider(props) {
                      currentList: updateList(store.currentList)
                      });
             }
+            case GlobalStoreActionType.UPDATE_SONG_LISTEN_COUNT: {
+                               const { songId, listenCount } = payload;
+                                 const updateSong = (song) => {
+                                   const id = song?._id || song?.songId;
+                                   if (!id) return song;
+                
+                                    return id.toString() === songId.toString()
+                                        ? { ...song, listenCount, listens: listenCount }
+                                      : song;
+                              };
+                              return setStore({
+                                   ...store,
+                                    allSongs: (store.allSongs || []).map(updateSong),
+                                   filteredSongs: (store.filteredSongs || []).map(updateSong),
+                                    currentList: store.currentList
+                                      ? {
+                                              ...store.currentList,
+                                             songs: (store.currentList.songs || []).map(updateSong),
+                                          }
+                                      : store.currentList,
+                          });
+                          }
 
             // PREPARE TO DELETE A LIST
             case GlobalStoreActionType.MARK_LIST_FOR_DELETION: {
@@ -600,6 +623,23 @@ function GlobalStoreContextProvider(props) {
         }
 
       };
+
+      store.incrementSongListenCount = async function (songId) {
+            if (!songId) return;
+              try {
+                    const response = await storeRequestSender.incrementSongListenCount(songId);
+                  if (response.success) {
+                       const listenCount =
+                            response.listenCount ?? response.song?.listenCount ?? 0;
+                       storeReducer({
+                           type: GlobalStoreActionType.UPDATE_SONG_LISTEN_COUNT,
+                            payload: { songId, listenCount }
+                       });
+                    }
+               } catch (error) {
+                  console.error('Failed to increment song listen count:', error);
+               }
+           };
       
       
 

@@ -3,6 +3,7 @@ const router = express.Router();
 const Song = require('../models/song-model');
 const Playlist = require('../models/playlist-model');
 const auth = require('../auth');
+const mongoose = require('mongoose');
 
 // Get all songs
 router.get('/', async (req, res) => {
@@ -20,6 +21,48 @@ router.get('/', async (req, res) => {
         return res.status(500).json({
             success: false,
             errorMessage: 'Failed to fetch songs'
+        });
+    }
+});
+
+// Increment listen count for a song without requiring authentication
+router.post('/:id/listen', async (req, res) => {
+    try {
+        const songId = req.params.id;
+
+        if (!mongoose.Types.ObjectId.isValid(songId)) {
+            return res.status(400).json({
+                success: false,
+                errorMessage: 'Invalid song ID'
+            });
+        }
+
+        const updatedSong = await Song.findByIdAndUpdate(
+            songId,
+            {
+                $inc: { listenCount: 1 },
+                $set: { updatedAt: new Date() }
+            },
+            { new: true }
+        ).populate('addedBy', 'userName email');
+
+        if (!updatedSong) {
+            return res.status(404).json({
+                success: false,
+                errorMessage: 'Song not found'
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            song: updatedSong,
+            listenCount: updatedSong.listenCount || 0
+        });
+    } catch (err) {
+        console.error('Error incrementing song listen count:', err);
+        return res.status(500).json({
+            success: false,
+            errorMessage: 'Failed to increment listen count'
         });
     }
 });
