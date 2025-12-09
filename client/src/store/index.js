@@ -48,7 +48,8 @@ export const GlobalStoreActionType = {
     OPEN_REMOVE_SONG_MODAL: "OPEN_REMOVE_SONG_MODAL",
     CLOSE_REMOVE_SONG_MODAL: "CLOSE_REMOVE_SONG_MODAL",
     OPEN_ADD_TO_PLAYLIST_MODAL: "OPEN_ADD_TO_PLAYLIST_MODAL",
-    CLOSE_ADD_TO_PLAYLIST_MODAL: "CLOSE_ADD_TO_PLAYLIST_MODAL"
+    CLOSE_ADD_TO_PLAYLIST_MODAL: "CLOSE_ADD_TO_PLAYLIST_MODAL",
+    UPDATE_PLAYLIST_LISTENER_COUNT: "UPDATE_PLAYLIST_LISTENER_COUNT"
 
 }
 
@@ -196,6 +197,22 @@ function GlobalStoreContextProvider(props) {
                     listMarkedForDeletion: null
                 });
             }
+            case GlobalStoreActionType.UPDATE_PLAYLIST_LISTENER_COUNT: {
+                const { playlistId, listenerCount } = payload;
+                const updateList = (list) =>
+                list && list._id === playlistId
+                 ? { ...list, listenerCount }
+                 : list;
+                
+                 return setStore({
+                    ...store,
+                    idNamePairs: store.idNamePairs.map(updateList),
+                    allIdNamePairs: store.allIdNamePairs.map(updateList),
+                    filteredPlaylists: (store.filteredPlaylists || []).map(updateList),
+                     currentList: updateList(store.currentList)
+                     });
+            }
+
             // PREPARE TO DELETE A LIST
             case GlobalStoreActionType.MARK_LIST_FOR_DELETION: {
                 return setStore({
@@ -560,8 +577,28 @@ function GlobalStoreContextProvider(props) {
             console.error("Failed to load idNamePairs:", response.errorMessage);
           }
         } catch (error) {
-          console.error("Error loading playlist pairs:", error);
+                console.error("Error loading playlist pairs:", error);
+                 }
+              };
+            
+               store.incrementPlaylistListenerCount = async function (playlistId) {
+                   if (!playlistId) return;
+                  try {
+                       const response = await storeRequestSender.incrementPlaylistListenerCount(playlistId);
+           
+                      if (response.success) {
+                           const listenerCount =
+                               response.listenerCount ?? response.playlist?.listenerCount ?? 0;
+            
+                           storeReducer({
+                              type: GlobalStoreActionType.UPDATE_PLAYLIST_LISTENER_COUNT,
+                               payload: { playlistId, listenerCount }
+                          });
+                      }
+        } catch (error) {
+            console.error('Failed to increment listener count:', error);
         }
+
       };
       
       

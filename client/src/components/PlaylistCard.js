@@ -65,9 +65,10 @@ export default function PlaylistCard({ idNamePair }) {
     }
   };
 
-  const handlePlay = (e) => {
+  const handlePlay = async (e) => {
     e.stopPropagation();
     if (!playlistId) return;
+    store.incrementPlaylistListenerCount(playlistId);
     setPlayOpen(true);
   };
 

@@ -35,12 +35,17 @@ export default function HomeScreen() {
         severity: 'success'
     });
 
-    // Load playlists on component mount or auth change
+    // Load appropriate playlists on component mount or auth change
     useEffect(() => {
-        store.loadIdNamePairs();
+        if (auth.loggedIn && !auth.user?.isGuest) {
+            // Load both user's playlists and all playlists (for searching)
+            store.loadIdNamePairs();
+        } else {
+            store.loadGuestPlaylists();
+        }
     }, [auth.loggedIn, auth.user?.isGuest]);
 
-    // Create new playlist (no navigation)
+    // Create new playlist
     const handleCreateNewPlaylist = async () => {
         setIsCreatingNew(true);
         try {
@@ -53,8 +58,12 @@ export default function HomeScreen() {
                     severity: 'success'
                 });
                 
+                // Reload the appropriate playlists
                 setTimeout(() => {
-                    if (auth.loggedIn && !auth.user?.isGuest) {
+                    if (store.isSearching) {
+                        // If searching, re-run search to include the new playlist
+                        handleSearch();
+                    } else if (auth.loggedIn && !auth.user?.isGuest) {
                         store.loadIdNamePairs();
                     } else {
                         store.loadGuestPlaylists();
@@ -99,12 +108,17 @@ export default function HomeScreen() {
         }
         
         const query = searchTerms.join(' ');
-      
         
+        if (query.trim() === '') {
+            // If no search terms, clear search and show user's playlists
+            store.clearSearch();
+            return;
+        }
+        
+        // Search through ALL playlists (store.allIdNamePairs)
         store.searchPlaylists(query);
     };
 
-  
     const handleSearchKeyDown = (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -118,6 +132,8 @@ export default function HomeScreen() {
         setSongTitleFilter('');
         setSongArtistFilter('');
         setSongYearFilter('');
+        
+        // Clear search and show user's playlists
         store.clearSearch();
         
         setSnackbar({
@@ -161,9 +177,18 @@ export default function HomeScreen() {
         setSnackbar({ ...snackbar, open: false });
     };
 
+    // Get the playlists to display based on current state
     const displayPlaylists = store.getDisplayPlaylists();
-
     const sortedPlaylists = sortPlaylists(displayPlaylists);
+
+    // Helper function to get user's email for filtering
+    const getUserEmail = () => {
+        if (!auth.loggedIn || auth.user?.isGuest) return null;
+        return (auth.user?.email || auth.user?.emailAddress || '').toLowerCase();
+    };
+
+    // Check if we're showing only user's playlists (not searching)
+    const showingUserPlaylists = !store.isSearching && auth.loggedIn && !auth.user?.isGuest;
 
     return (
         <Box sx={{ 
@@ -182,7 +207,7 @@ export default function HomeScreen() {
                         mb: 3 
                     }}
                 >
-                    Playlists
+                    {store.isSearching ? 'Search Playlists' : 'My Playlists'}
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -331,7 +356,7 @@ export default function HomeScreen() {
                     <Typography sx={{ fontWeight: 600, color: '#666' }}>
                         {sortedPlaylists ? sortedPlaylists.length : 0} Playlist
                         {sortedPlaylists && sortedPlaylists.length !== 1 ? 's' : ''}
-                        {store.isSearching && ' (filtered)'}
+                        {store.isSearching && ' (search results)'}
                     </Typography>
                 </Box>
 
@@ -358,27 +383,29 @@ export default function HomeScreen() {
                     )}
                 </Box>
 
-                {/* New Playlist Button */}
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button
-                        variant="contained"
-                        startIcon={<AddCircleOutlineIcon />}
-                        onClick={handleCreateNewPlaylist}
-                        disabled={isCreatingNew}
-                        sx={{
-                            backgroundColor: '#9c27b0',
-                            borderRadius: '20px',
-                            textTransform: 'none',
-                            '&:hover': { backgroundColor: '#7b1fa2' },
-                            '&.Mui-disabled': {
-                                backgroundColor: '#cccccc',
-                                color: '#666666'
-                            }
-                        }}
-                    >
-                        {isCreatingNew ? 'Creating...' : 'New Playlist'}
-                    </Button>
-                </Box>
+                {/* New Playlist Button - Only show when not searching */}
+                {!store.isSearching && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <Button
+                            variant="contained"
+                            startIcon={<AddCircleOutlineIcon />}
+                            onClick={handleCreateNewPlaylist}
+                            disabled={isCreatingNew}
+                            sx={{
+                                backgroundColor: '#9c27b0',
+                                borderRadius: '20px',
+                                textTransform: 'none',
+                                '&:hover': { backgroundColor: '#7b1fa2' },
+                                '&.Mui-disabled': {
+                                    backgroundColor: '#cccccc',
+                                    color: '#666666'
+                                }
+                            }}
+                        >
+                            {isCreatingNew ? 'Creating...' : 'New Playlist'}
+                        </Button>
+                    </Box>
+                )}
             </Box>
 
             {/* Modals */}

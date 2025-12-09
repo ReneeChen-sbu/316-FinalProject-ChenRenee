@@ -80,6 +80,12 @@ async function copyPlaylist(playlistId) {
     });
 }
 
+async function incrementPlaylistListenerCount(playlistId) {
+    return fetchJSON(`/api/playlists/${playlistId}/listen`, {
+        method: 'POST',
+    });
+}
+
 
 async function getAllSongs() {
     return fetchJSON('/api/songs', {
@@ -136,6 +142,7 @@ export default {
     updatePlaylistById,
     createPlaylist,
     copyPlaylist,
+    incrementPlaylistListenerCount,
     getAllSongs,
     searchSongs,
     createSong,

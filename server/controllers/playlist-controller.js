@@ -3,6 +3,50 @@ const User = require('../models/user-model');
 const Song = require('../models/song-model');
 const mongoose = require('mongoose');
 
+// Increment listener count without requiring authentication
+const incrementListenerCount = async (req, res) => {
+  try {
+    const playlistId = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+      return res.status(400).json({
+        success: false,
+        errorMessage: 'Invalid playlist ID'
+      });
+    }
+
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(
+      playlistId,
+      {
+        $inc: { listenerCount: 1 },
+        $set: { updatedAt: new Date() }
+      },
+      { new: true }
+    )
+      .populate('owner', 'userName email avatar')
+      .populate('songs');
+
+    if (!updatedPlaylist) {
+      return res.status(404).json({
+        success: false,
+        errorMessage: 'Playlist not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      playlist: updatedPlaylist,
+      listenerCount: updatedPlaylist.listenerCount || 0
+    });
+  } catch (err) {
+    console.error('incrementListenerCount error:', err);
+    return res.status(500).json({
+      success: false,
+      errorMessage: 'Failed to increment listener count'
+    });
+  }
+};
+
 // CREATE playlist
 const createPlaylist = async (req, res) => {
   try {
@@ -628,5 +672,6 @@ module.exports = {
   addSongToPlaylist,
   removeSongFromPlaylist,
   copyPlaylist,
-  getGuestPlaylists
+  getGuestPlaylists,
+  incrementListenerCount
 };

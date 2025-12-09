@@ -7,8 +7,9 @@ const router = express.Router();
 
 //GUEST LIBRARY (no auth)
 router.get('/guest', PlaylistController.getGuestPlaylists);
+router.post('/:id/listen', PlaylistController.incrementListenerCount);
 
-//LOGGED-IN ROUTES 
+//LOGGED-IN ROUTES
 router.get('/pairs', requireAuth, PlaylistController.getPlaylistPairs);
 router.get('/', requireAuth, PlaylistController.getPlaylists);
 router.get('/:id', requireAuth, PlaylistController.getPlaylistById);
