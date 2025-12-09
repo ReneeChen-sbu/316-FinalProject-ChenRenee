@@ -325,8 +325,8 @@ router.delete('/:id', auth.requireAuth, async (req, res) => {
         
         // Remove song from all playlists that contain it
         await Playlist.updateMany(
-            { songs: songId },
-            { $pull: { songs: songId } }
+            { 'songs.songId': songId },
+            { $pull: { songs: { songId } } }
         );
         
         await Song.findByIdAndDelete(songId);
