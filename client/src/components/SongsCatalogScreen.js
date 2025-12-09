@@ -191,9 +191,7 @@ export default function SongsCatalogScreen() {
     // REMOVE SONG
     const handleRemoveSong = () => {
         if (selectedSongForMenu) {
-            // First set the song to remove, then open the modal
-            store.setSongToRemove(selectedSongForMenu);
-            store.openRemoveSongModal();
+            store.openRemoveSongModal(selectedSongForMenu);
         }
         handleSongMenuClose();
     };

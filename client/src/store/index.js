@@ -427,7 +427,8 @@ function GlobalStoreContextProvider(props) {
             case GlobalStoreActionType.OPEN_REMOVE_SONG_MODAL: {
                 return setStore({
                     ...store,
-                    isRemoveSongModalOpen: true
+                    isRemoveSongModalOpen: true,
+                    songToRemove: payload?.song ?? store.songToRemove
                 });
             }
             case GlobalStoreActionType.CLOSE_REMOVE_SONG_MODAL: {
@@ -893,10 +894,10 @@ function GlobalStoreContextProvider(props) {
         });
     };
     
-    store.openRemoveSongModal = function() {
+    store.openRemoveSongModal = function(song) {
         storeReducer({
             type: GlobalStoreActionType.OPEN_REMOVE_SONG_MODAL,
-            payload: {}
+            payload: { song }
         });
     };
     
