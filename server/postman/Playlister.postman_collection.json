@@ -1,0 +1,166 @@
+{
+  "info": {
+    "name": "Playlister API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const token = pm.environment.get('authToken');",
+          "const cookie = pm.environment.get('authCookie');",
+          "if (cookie) {",
+          "  pm.request.headers.add({ key: 'Cookie', value: `token=${cookie}` });",
+          "} else if (token) {",
+          "  pm.request.headers.add({ key: 'Authorization', value: `Bearer ${token}` });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [ {"key": "Content-Type", "value": "application/json"} ],
+        "url": "{{baseUrl}}/auth/register",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userName\": \"Postman Tester\",\n  \"email\": \"pm-user@example.com\",\n  \"password\": \"password123\",\n  \"passwordVerify\": \"password123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('register success', () => { pm.response.to.have.status(200); });",
+              "const json = pm.response.json();",
+              "pm.test('returns user body', () => { pm.expect(json.user).to.have.property('userName'); });",
+              "const cookie = pm.cookies.get('token');",
+              "if (cookie) pm.environment.set('authCookie', cookie);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [ {"key": "Content-Type", "value": "application/json"} ],
+        "url": "{{baseUrl}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"pm-user@example.com\",\n  \"password\": \"password123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login ok', () => pm.response.to.have.status(200));",
+              "const json = pm.response.json();",
+              "pm.environment.set('authToken', json.token || '');",
+              "const cookie = pm.cookies.get('token'); if (cookie) pm.environment.set('authCookie', cookie);",
+              "pm.environment.set('userId', json.user && json.user._id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check Logged In",
+      "request": { "method": "GET", "url": "{{baseUrl}}/auth/loggedIn" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('logged in ok', () => pm.expect(pm.response.json().loggedIn).to.be.true);"] } } ]
+    },
+    {
+      "name": "Create Song",
+      "request": {
+        "method": "POST",
+        "header": [ {"key": "Content-Type", "value": "application/json"} ],
+        "url": "{{baseUrl}}/api/songs",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Postman Song\",\n  \"artist\": \"SDK Artist\",\n  \"year\": 2024,\n  \"youTubeId\": \"yt123\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('song created', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.environment.set('songId', json.song && json.song._id);",
+              "pm.test('has playlist counter', () => pm.expect(json.song.playlistCount).to.equal(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create Playlist",
+      "request": {
+        "method": "POST",
+        "header": [ {"key": "Content-Type", "value": "application/json"} ],
+        "url": "{{baseUrl}}/api/playlists",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"PM Favorites\",\n  \"songs\": []\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('playlist created', () => pm.response.to.have.status(201));",
+              "const json = pm.response.json();",
+              "pm.environment.set('playlistId', json.playlist && json.playlist._id);",
+              "pm.test('listener count present', () => pm.expect(json.playlist.listenerCount).to.eql(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Add Song To Playlist",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/playlists/{{playlistId}}/songs/{{songId}}" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('song added', () => pm.response.to.have.status(200));","pm.test('playlist now has song', () => pm.expect(pm.response.json().playlist.songs).to.be.an('array').that.is.not.empty);"] } } ]
+    },
+    {
+      "name": "Playlist Listen Increment",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/playlists/{{playlistId}}/listen" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();","pm.test('listen increments', () => pm.expect(json.listenerCount).to.be.above(0));"] } } ]
+    },
+    {
+      "name": "Song Listen Increment",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/songs/{{songId}}/listen" },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": ["const json = pm.response.json();","pm.test('listen count increments', () => pm.expect(json.listenCount).to.be.above(0));"] } } ]
+    },
+    {
+      "name": "Duplicate Playlist Name",
+      "request": {
+        "method": "POST",
+        "header": [ {"key": "Content-Type", "value": "application/json"} ],
+        "url": "{{baseUrl}}/api/playlists",
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"PM Favorites\"\n}" }
+      },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('duplicate rejected', () => pm.response.to.have.status(400));"] } } ]
+    },
+    {
+      "name": "Missing Song Fields",
+      "request": { "method": "POST", "url": "{{baseUrl}}/api/songs", "body": { "mode": "raw", "raw": "{}" } },
+      "event": [ { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('missing fields 400', () => pm.response.to.have.status(400));"] } } ]
+    }
+  ]
+}

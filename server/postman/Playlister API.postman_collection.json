@@ -1,0 +1,391 @@
+{
+	"info": {
+		"_postman_id": "2be1a299-1cdc-4ef2-9cee-6e34e724bee4",
+		"name": "Playlister API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49120821",
+		"_collection_link": "https://renee-chen-1-9881628.postman.co/workspace/Renee-Chen's-Workspace~475c036e-07ab-4f9f-8317-1e9312d9f0e7/collection/49120821-2be1a299-1cdc-4ef2-9cee-6e34e724bee4?action=share&source=collection_link&creator=49120821"
+	},
+	"item": [
+		{
+			"name": "Register",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('register success', () => { pm.response.to.have.status(200); });",
+							"const json = pm.response.json();",
+							"pm.test('returns user body', () => { pm.expect(json.user).to.have.property('userName'); });",
+							"const cookie = pm.cookies.get('token');",
+							"if (cookie) pm.environment.set('authCookie', cookie);"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"userName\": \"Postman Tester\",\n  \"email\": \"pm-user@example.com\",\n  \"password\": \"password123\",\n  \"passwordVerify\": \"password123\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/register",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('login ok', () => pm.response.to.have.status(200));",
+							"const json = pm.response.json();",
+							"pm.environment.set('authToken', json.token || '');",
+							"const cookie = pm.cookies.get('token'); if (cookie) pm.environment.set('authCookie', cookie);",
+							"pm.environment.set('userId', json.user && json.user._id);"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"pm-user@example.com\",\n  \"password\": \"password123\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/auth/login",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Check Logged In",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('logged in ok', () => pm.expect(pm.response.json().loggedIn).to.be.true);"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/auth/loggedIn",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"auth",
+						"loggedIn"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Song",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('song created', () => pm.response.to.have.status(201));",
+							"const json = pm.response.json();",
+							"pm.environment.set('songId', json.song && json.song._id);",
+							"pm.test('has playlist counter', () => pm.expect(json.song.playlistCount).to.equal(0));"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"title\": \"Postman Song\",\n  \"artist\": \"SDK Artist\",\n  \"year\": 2024,\n  \"youTubeId\": \"yt123\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/songs",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"songs"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Playlist",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('playlist created', () => pm.response.to.have.status(201));",
+							"const json = pm.response.json();",
+							"pm.environment.set('playlistId', json.playlist && json.playlist._id);",
+							"pm.test('listener count present', () => pm.expect(json.playlist.listenerCount).to.eql(0));"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"PM Favorites\",\n  \"songs\": []\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/playlists",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"playlists"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Add Song To Playlist",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('song added', () => pm.response.to.have.status(200));",
+							"pm.test('playlist now has song', () => pm.expect(pm.response.json().playlist.songs).to.be.an('array').that.is.not.empty);"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/playlists/{{playlistId}}/songs/{{songId}}",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"playlists",
+						"{{playlistId}}",
+						"songs",
+						"{{songId}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Playlist Listen Increment",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const json = pm.response.json();",
+							"pm.test('listen increments', () => pm.expect(json.listenerCount).to.be.above(0));"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/playlists/{{playlistId}}/listen",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"playlists",
+						"{{playlistId}}",
+						"listen"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Song Listen Increment",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"const json = pm.response.json();",
+							"pm.test('listen count increments', () => pm.expect(json.listenCount).to.be.above(0));"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "{{baseUrl}}/api/songs/{{songId}}/listen",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"songs",
+						"{{songId}}",
+						"listen"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Duplicate Playlist Name",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('duplicate rejected', () => pm.response.to.have.status(400));"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"PM Favorites\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/playlists",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"playlists"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Missing Song Fields",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							"pm.test('missing fields 400', () => pm.response.to.have.status(400));"
+						]
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/songs",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"songs"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"const token = pm.environment.get('authToken');",
+					"const cookie = pm.environment.get('authCookie');",
+					"if (cookie) {",
+					"  pm.request.headers.add({ key: 'Cookie', value: `token=${cookie}` });",
+					"} else if (token) {",
+					"  pm.request.headers.add({ key: 'Authorization', value: `Bearer ${token}` });",
+					"}"
+				]
+			}
+		}
+	]
+}
