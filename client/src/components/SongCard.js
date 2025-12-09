@@ -188,8 +188,8 @@ export default function SongsCatalogScreen() {
 
     const handleEditSong = () => {
         if (selectedSongForMenu) {
-            store.setSongToEdit(selectedSongForMenu);
-            store.openEditSongModal();
+            // Use the shared edit-song modal with the catalog edit source
+            store.showEditSongModal(-1, selectedSongForMenu, 'catalog');
         }
         handleSongMenuClose();
     };
